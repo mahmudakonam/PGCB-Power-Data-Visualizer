@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PGCB Power Data Visualizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f0f2f7;
+      --panel: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e2e6ef;
+      --primary: #1a56db;
+      --primary-dark: #1447b2;
+      --primary-light: #e8effd;
+      --danger: #dc2626;
+      --danger-light: #fef2f2;
+      --good: #059669;
+      --good-light: #ecfdf5;
+      --warn: #d97706;
+      --warn-light: #fffbeb;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.05);
+      --shadow: 0 4px 16px rgba(0,0,0,.08);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,.10);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --sidebar-w: 340px;
+      --header-h: 64px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, #0d1b3e 0%, #1a3a8f 60%, #1a56db 100%);
+      color: white;
+      padding: 0 28px;
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,.25);
+    }
+
+    .header-icon {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,.15);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      flex: 1;
+    }
+
+    header .header-badge {
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.2);
+      color: #dbeafe;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    /* ── LAYOUT ── */
+    .app-body {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .app-body { grid-template-columns: 1fr; }
+    }
+
+    aside {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #e8eaf2;
+      border-right: 1px solid var(--border);
+      min-height: calc(100vh - var(--header-h));
+    }
+
+    main {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px 0;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .card-header h2 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      flex: 1;
+    }
+
+    .card-body { padding: 12px 16px 16px; }
+
+    .collapse-icon {
+      font-size: 11px;
+      color: var(--muted);
+      transition: transform .2s;
+    }
+
+    .card.collapsed .collapse-icon { transform: rotate(-90deg); }
+    .card.collapsed .card-body { display: none; }
+
+    /* ── AUTHOR PROFILE ── */
+    .profile-card-inner {
+      text-align: center;
+      padding: 6px 0 4px;
+    }
+
+    .profile-avatar {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1a56db 0%, #7c3aed 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px;
+      font-size: 30px;
+      color: white;
+      font-weight: 800;
+      font-family: 'DM Sans', sans-serif;
+      box-shadow: 0 4px 16px rgba(26, 86, 219, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .profile-avatar::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.25);
+    }
+
+    .profile-name {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .profile-affiliation {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 12px;
+      letter-spacing: 0.02em;
+    }
+
+    .profile-links {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .profile-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      background: #f1f5f9;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #374151;
+      text-decoration: none;
+      transition: all .15s;
+      font-weight: 500;
+    }
+
+    .profile-link:hover {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .profile-link .link-icon {
+      width: 22px; height: 22px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .profile-link .link-icon.email { background: #fee2e2; }
+    .profile-link .link-icon.linkedin { background: #dbeafe; }
+
+    .profile-link .link-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .profile-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 10px 0;
+    }
+
+    /* Loading bar */
+    .load-bar-wrap {
+      display: none;
+      height: 3px;
+      background: var(--primary-light);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .load-bar-wrap.visible { display: block; }
+    .load-bar {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 999px;
+      width: 0%;
+      animation: indeterminate 1.4s ease-in-out infinite;
+    }
+    @keyframes indeterminate {
+      0% { width: 0%; margin-left: 0%; }
+      50% { width: 60%; margin-left: 20%; }
+      100% { width: 0%; margin-left: 100%; }
+    }
+
+    .load-status {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+      min-height: 18px;
+    }
+
+    .load-status .success { color: var(--good); font-weight: 700; }
+    .load-status .error { color: var(--danger); font-weight: 700; }
+
+    /* ── FORM CONTROLS ── */
+    .field { margin-top: 10px; }
+    .field:first-child { margin-top: 0; }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #475569;
+      margin-bottom: 5px;
+    }
+
+    select, input[type="date"], input[type="time"], input[type="number"], input[type="text"] {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      background: white;
+      color: var(--text);
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    select:focus, input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.12);
+    }
+
+    /* Date row */
+    .date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* Quick presets */
+    .presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .preset-btn {
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .preset-btn:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: none;
+    }
+
+    /* Checkbox list */
+    .checkbox-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 260px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      background: #f8fafc;
+      scrollbar-width: thin;
+    }
+
+    .checkbox-list label {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin: 0;
+      font-weight: 500;
+      font-size: 12px;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--text);
+      cursor: pointer;
+      padding: 3px 4px;
+      border-radius: 6px;
+      transition: background .12s;
+    }
+
+    .checkbox-list label:hover { background: #e2e8f0; }
+
+    input[type="checkbox"] {
+      accent-color: var(--primary);
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* Buttons */
+    button {
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 9px 14px;
+      font-weight: 700;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all .15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+
+    .btn-secondary { background: #e2e8f0; color: #0f172a; }
+    .btn-secondary:hover { background: #cbd5e1; }
+
+    .btn-danger { background: var(--danger-light); color: var(--danger); border: 1px solid #fecaca; }
+    .btn-danger:hover { background: #fecaca; }
+
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: #f1f5f9; color: var(--text); }
+
+    .btn-full { width: 100%; }
+
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .btn-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 10px; }
+
+    /* Auto-apply toggle */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: var(--primary-light);
+      border-radius: var(--radius-sm);
+    }
+
+    .toggle-row span { font-size: 12px; font-weight: 600; color: var(--primary); flex: 1; }
+
+    .toggle {
+      width: 36px; height: 20px;
+      background: #cbd5e1;
+      border-radius: 999px;
+      position: relative;
+      cursor: pointer;
+      transition: background .2s;
+      flex-shrink: 0;
+    }
+
+    .toggle.on { background: var(--primary); }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      background: white;
+      border-radius: 50%;
+      top: 3px; left: 3px;
+      transition: left .2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    }
+
+    .toggle.on::after { left: 19px; }
+
+    /* ── STATS ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 1100px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .stats-grid { grid-template-columns: 1fr; } }
+
+    .stat-card {
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      border: 1px solid;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+
+    .stat-card.blue { background: #eff6ff; border-color: #bfdbfe; }
+    .stat-card.blue::before { background: #3b82f6; }
+    .stat-card.orange { background: #fff7ed; border-color: #fed7aa; }
+    .stat-card.orange::before { background: var(--warn); }
+    .stat-card.red { background: var(--danger-light); border-color: #fecaca; }
+    .stat-card.red::before { background: var(--danger); }
+    .stat-card.green { background: var(--good-light); border-color: #a7f3d0; }
+    .stat-card.green::before { background: var(--good); }
+    .stat-card.slate { background: #f8fafc; border-color: var(--border); }
+    .stat-card.slate::before { background: #94a3b8; }
+    .stat-card.purple { background: #faf5ff; border-color: #e9d5ff; }
+    .stat-card.purple::before { background: #7c3aed; }
+    .stat-card.teal { background: #f0fdfa; border-color: #99f6e4; }
+    .stat-card.teal::before { background: #0d9488; }
+    .stat-card.indigo { background: #eef2ff; border-color: #c7d2fe; }
+    .stat-card.indigo::before { background: #4f46e5; }
+
+    .stat-icon { font-size: 18px; margin-bottom: 6px; }
+    .stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+    .stat-value { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; font-family: 'DM Mono', monospace; margin-top: 4px; line-height: 1; }
+    .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    .stat-card.blue .stat-value { color: #1d4ed8; }
+    .stat-card.orange .stat-value { color: var(--warn); }
+    .stat-card.red .stat-value { color: var(--danger); }
+    .stat-card.green .stat-value { color: var(--good); }
+    .stat-card.slate .stat-value { color: #475569; }
+    .stat-card.purple .stat-value { color: #6d28d9; }
+    .stat-card.teal .stat-value { color: #0f766e; }
+    .stat-card.indigo .stat-value { color: #4338ca; }
+
+    /* Insight bar */
+    .insight-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-top: 14px;
+    }
+
+    .insight-bar .icon { font-size: 16px; flex-shrink: 0; }
+    .insight-bar p { font-size: 13px; color: #374151; line-height: 1.5; }
+
+    /* ── CHARTS ── */
+    .chart-section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .chart-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .chart-title { flex: 1; }
+    .chart-title h3 { font-size: 15px; font-weight: 700; }
+    .chart-title p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .chart-actions { display: flex; gap: 6px; align-items: center; }
+
+    .chart-body { padding: 14px 18px 18px; }
+
+    canvas { width: 100% !important; max-height: 440px; }
+
+    .chart-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      color: var(--muted);
+      gap: 8px;
+    }
+
+    .chart-empty .empty-icon { font-size: 40px; opacity: 0.3; }
+    .chart-empty p { font-size: 13px; text-align: center; }
+
+    /* ── TABLE ── */
+    .table-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-toolbar h3 { font-size: 15px; font-weight: 700; flex: 1; }
+    .table-count { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+    .table-wrap {
+      width: 100%;
+      overflow: auto;
+      max-height: 400px;
+      scrollbar-width: thin;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 900px;
+      font-size: 13px;
+    }
+
+    th, td {
+      border-bottom: 1px solid #f1f5f9;
+      padding: 8px 12px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f8fafc;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      border-bottom: 2px solid var(--border);
+    }
+
+    tr:hover td { background: #f8fafc; }
+
+    td { color: #374151; font-family: 'DM Mono', monospace; font-size: 12px; }
+    td:first-child { font-family: inherit; font-size: 13px; }
+
+    /* Number cells */
+    td.num { text-align: right; }
+
+    /* High load shedding */
+    td.high-shed { color: var(--danger); font-weight: 600; }
+    td.peak-gen { color: var(--good); font-weight: 600; }
+
+    /* ── TOAST ── */
+    #toastContainer {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      pointer-events: auto;
+      animation: slideIn .25s ease-out;
+      max-width: 340px;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .toast.success { background: var(--good); color: white; }
+    .toast.error { background: var(--danger); color: white; }
+    .toast.info { background: var(--primary); color: white; }
+
+    /* ── EXPECTED COLS ── */
+    details {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 8px 12px;
+      background: #f8fafc;
+      user-select: none;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    summary::after { content: '▾'; margin-left: auto; }
+    details[open] summary::after { content: '▴'; }
+
+    .cols-list { padding: 10px 12px; font-size: 12px; color: var(--muted); line-height: 1.8; font-family: 'DM Mono', monospace; }
+
+    /* ── DIVIDER ── */
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #94a3b8;
+    }
+    .section-divider::before, .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── PILL ── */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .chart-actions { display: none; }
+      .date-row, .time-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-icon">⚡</div>
+    <h1>PGCB Power Data Visualizer</h1>
+    <span class="header-badge">Bangladesh Grid</span>
+  </header>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toastContainer"></div>
+
+  <div class="app-body">
+
+    <!-- SIDEBAR -->
+    <aside>
+
+      <!-- 1. AUTHOR PROFILE -->
+      <div class="card" id="profileCard">
+        <div class="card-header" onclick="toggleCard('profileCard')">
+          <span>👤</span>
+          <h2>Developer</h2>
+          <span class="collapse-icon">▾</span>
+        </div>
+        <div class="card-body">
+          <div class="profile-card-inner">
+            <div class="profile-avatar">MA</div>
+            <div class="profile-name">Md Mahmud Akon</div>
+            <div class="profile-affiliation">EEE, BUET</div>
+          </div>
+          <div class="profile-links">
+            <a class="profile-link" href="mailto:mahmudakon.eee.buet@gmail.com">
+              <span class="link-icon email">✉</span>
+              <span class="link-text">mahmudakon.eee.buet@gmail.com</span>
+            </a>
+            <a class="profile-link" href="https://www.linkedin.com/in/mahmudakon/" target="_blank" rel="noopener">
+              <span class="link-icon linkedin">in</span>
+              <span class="link-text">linkedin.com/in/mahmudakon</span>
+            </a>
+          </div>
+          <div class="profile-divider"></div>
+          <div id="loadBarWrap" class="load-bar-wrap">
+            <div class="load-bar"></div>
+          </div>
+          <div id="loadStatus" class="load-status">Loading data…</div>
+        </div>
+      </div>
+
+      <!-- 2. FILTERS -->
+      <div class="card" id="filterCard">
+        <div class="card-header" onclick="toggleCard('filterCard')">
+          <span>🔍</span>
+          <h2>2 · Filters</h2>
+          <span class="collapse-icon">▾</span>
+        </div>
+        <div class="card-body">
+
+          <!-- Quick presets -->
+          <label>Quick date range</label>
+          <div class="presets">
+            <button class="preset-btn" onclick="setPreset('today')">Today</button>
+            <button class="preset-btn" onclick="setPreset('7d')">7 Days</button>
+            <button class="preset-btn" onclick="setPreset('30d')">30 Days</button>
+            <button class="preset-btn" onclick="setPreset('3m')">3 Months</button>
+            <button class="preset-btn" onclick="setPreset('thisYear')">This Year</button>
+            <button class="preset-btn" onclick="setPreset('all')">All</button>
+          </div>
+
+          <div class="section-divider" style="margin: 10px 0 6px;">or filter manually</div>
+
+          <div class="field">
+            <label for="yearFilter">Year</label>
+            <select id="yearFilter"><option value="">All years</option></select>
+          </div>
+
+          <div class="date-row" style="margin-top:10px;">
+            <div>
+              <label for="monthFilter">Month</label>
+              <select id="monthFilter">
+                <option value="">All</option>
+                <option value="0">Jan</option><option value="1">Feb</option>
+                <option value="2">Mar</option><option value="3">Apr</option>
+                <option value="4">May</option><option value="5">Jun</option>
+                <option value="6">Jul</option><option value="7">Aug</option>
+                <option value="8">Sep</option><option value="9">Oct</option>
+                <option value="10">Nov</option><option value="11">Dec</option>
+              </select>
+            </div>
+            <div>
+              <label for="dayFilter">Weekday</label>
+              <select id="dayFilter">
+                <option value="">All</option>
+                <option value="0">Sun</option><option value="1">Mon</option>
+                <option value="2">Tue</option><option value="3">Wed</option>
+                <option value="4">Thu</option><option value="5">Fri</option>
+                <option value="6">Sat</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="date-row" style="margin-top:10px;">
+            <div>
+              <label for="startDate">Start date</label>
+              <input id="startDate" type="date" />
+            </div>
+            <div>
+              <label for="endDate">End date</label>
+              <input id="endDate" type="date" />
+            </div>
+          </div>
+
+          <div class="time-row" style="margin-top:10px;">
+            <div>
+              <label for="startTime">From time</label>
+              <input id="startTime" type="time" />
+            </div>
+            <div>
+              <label for="endTime">To time</label>
+              <input id="endTime" type="time" />
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:10px;">
+            <label for="remarksFilter">Peak / remarks</label>
+            <select id="remarksFilter"><option value="">All remarks</option></select>
+          </div>
+
+          <div class="field">
+            <label for="searchText">Search remarks text</label>
+            <input id="searchText" type="text" placeholder="e.g. Evening_Peak" />
+          </div>
+
+          <!-- Auto-apply toggle -->
+          <div class="toggle-row">
+            <span>⚡ Auto-apply on change</span>
+            <div class="toggle" id="autoApplyToggle" onclick="toggleAutoApply()"></div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn-primary" id="applyBtn">✔ Apply</button>
+            <button class="btn-secondary" id="resetBtn">↺ Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. CHART SETTINGS -->
+      <div class="card" id="chartSettingsCard">
+        <div class="card-header" onclick="toggleCard('chartSettingsCard')">
+          <span>📊</span>
+          <h2>3 · Graph settings</h2>
+          <span class="collapse-icon">▾</span>
+        </div>
+        <div class="card-body">
+
+          <div class="date-row">
+            <div>
+              <label for="aggregateBy">Group by</label>
+              <select id="aggregateBy">
+                <option value="raw">Raw rows</option>
+                <option value="hour">Hour</option>
+                <option value="day" selected>Day</option>
+                <option value="month">Month</option>
+                <option value="year">Year</option>
+              </select>
+            </div>
+            <div>
+              <label for="aggMethod">Method</label>
+              <select id="aggMethod">
+                <option value="avg" selected>Average</option>
+                <option value="sum">Sum</option>
+                <option value="max">Maximum</option>
+                <option value="min">Minimum</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:10px;">
+            <label for="chartType">Chart type</label>
+            <select id="chartType">
+              <option value="line" selected>📈 Line</option>
+              <option value="bar">📊 Bar</option>
+            </select>
+          </div>
+
+          <div style="margin-top:10px;">
+            <label>Metrics / sources</label>
+            <div id="metricList" class="checkbox-list"></div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn-secondary" id="selectAllBtn">Select all</button>
+            <button class="btn-danger" id="clearMetricsBtn">Clear all</button>
+          </div>
+
+          <button class="btn-full btn-primary" id="downloadBtn" style="margin-top:10px;">
+            ⬇ Download filtered CSV
+          </button>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main>
+
+      <!-- SUMMARY STATS -->
+      <section class="card" style="padding: 18px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+          <h2 style="font-size:16px; font-weight:800; flex:1;">Summary</h2>
+          <span id="filterPill" class="pill" style="display:none;">Filtered view</span>
+        </div>
+        <div id="summaryStats" class="stats-grid">
+          <div class="stat-card blue">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-label">Loaded rows</div>
+            <div class="stat-value">0</div>
+          </div>
+          <div class="stat-card slate">
+            <div class="stat-icon">🔍</div>
+            <div class="stat-label">Filtered rows</div>
+            <div class="stat-value">0</div>
+          </div>
+          <div class="stat-card slate">
+            <div class="stat-icon">📅</div>
+            <div class="stat-label">Date range</div>
+            <div class="stat-value" style="font-size:14px; line-height:1.4;">—</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-icon">🔋</div>
+            <div class="stat-label">Avg generation</div>
+            <div class="stat-value">—</div>
+          </div>
+        </div>
+        <div id="quickInsight" class="insight-bar" style="display:none;">
+          <span class="icon">💡</span>
+          <p></p>
+        </div>
+      </section>
+
+      <!-- MAIN CHART -->
+      <section class="chart-section">
+        <div class="chart-header">
+          <div class="chart-title">
+            <h3>📈 Time-series overview</h3>
+            <p>Selected metrics over time, grouped and aggregated as configured</p>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-ghost" onclick="downloadChart('mainChart', 'time_series')" title="Download chart as PNG" style="padding:6px 10px; font-size:12px;">⬇ PNG</button>
+          </div>
+        </div>
+        <div class="chart-body">
+          <div id="mainChartEmpty" class="chart-empty">
+            <span class="empty-icon">📂</span>
+            <p>Load a CSV file to see the time-series chart</p>
+          </div>
+          <canvas id="mainChart" style="display:none;"></canvas>
+        </div>
+      </section>
+
+      <!-- MIX + HOUR CHARTS (side by side) -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+
+        <section class="chart-section">
+          <div class="chart-header">
+            <div class="chart-title">
+              <h3>🥧 Generation mix</h3>
+              <p>Average source contribution in filtered period</p>
+            </div>
+            <div class="chart-actions">
+              <button class="btn-ghost" onclick="downloadChart('mixChart', 'fuel_mix')" style="padding:6px 10px; font-size:12px;">⬇ PNG</button>
+            </div>
+          </div>
+          <div class="chart-body">
+            <div id="mixChartEmpty" class="chart-empty">
+              <span class="empty-icon">📊</span>
+              <p>Load a CSV to see fuel mix</p>
+            </div>
+            <canvas id="mixChart" style="display:none; max-height:320px;"></canvas>
+          </div>
+        </section>
+
+        <section class="chart-section">
+          <div class="chart-header">
+            <div class="chart-title">
+              <h3>🕐 Hourly pattern</h3>
+              <p>Average by hour of day</p>
+            </div>
+            <div class="chart-actions">
+              <button class="btn-ghost" onclick="downloadChart('hourChart', 'hourly_pattern')" style="padding:6px 10px; font-size:12px;">⬇ PNG</button>
+            </div>
+          </div>
+          <div class="chart-body">
+            <div id="hourChartEmpty" class="chart-empty">
+              <span class="empty-icon">🕑</span>
+              <p>Load a CSV to see hourly patterns</p>
+            </div>
+            <canvas id="hourChart" style="display:none; max-height:320px;"></canvas>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- DATA TABLE -->
+      <section class="chart-section">
+        <div class="table-toolbar">
+          <h3>🗂 Filtered data preview</h3>
+          <span id="tableCount" class="table-count">—</span>
+          <button class="btn-ghost" id="downloadBtn2" onclick="downloadFilteredCSV()" style="padding:5px 12px; font-size:12px;">⬇ CSV</button>
+        </div>
+        <div id="tableWrap" class="table-wrap">
+          <div class="chart-empty">
+            <span class="empty-icon">📋</span>
+            <p>Load a CSV file to preview data here</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ── SCRIPTS ── -->
+  <script>
+    /* ── Helpers ── */
+    const $ = id => document.getElementById(id);
+    let autoApply = false;
+
+    function toggleCard(id) {
+      document.getElementById(id).classList.toggle('collapsed');
+    }
+
+    function toggleAutoApply() {
+      autoApply = !autoApply;
+      $('autoApplyToggle').classList.toggle('on', autoApply);
+    }
+
+    function showToast(msg, type = 'info', duration = 3500) {
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.innerHTML = `<span>${type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ'}</span> ${msg}`;
+      $('toastContainer').appendChild(t);
+      setTimeout(() => t.remove(), duration);
+    }
+
+    function downloadChart(canvasId, name) {
+      const canvas = $(canvasId);
+      if (!canvas || canvas.style.display === 'none') {
+        showToast('No chart to download', 'error'); return;
+      }
+      const a = document.createElement('a');
+      a.download = `${name}.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    }
+
+    /* ── Preset date ranges ── */
+    function setPreset(preset) {
+      if (!allRows.length) { showToast('Load a CSV file first', 'error'); return; }
+
+      const dates = allRows.map(r => r._date).filter(Boolean);
+      const minD = new Date(Math.min(...dates));
+      const maxD = new Date(Math.max(...dates));
+      const today = new Date(maxD); // use max date in data as "today"
+
+      let start = null, end = null;
+
+      if (preset === 'today') {
+        start = end = today;
+      } else if (preset === '7d') {
+        start = new Date(today); start.setDate(start.getDate() - 6); end = today;
+      } else if (preset === '30d') {
+        start = new Date(today); start.setDate(start.getDate() - 29); end = today;
+      } else if (preset === '3m') {
+        start = new Date(today); start.setMonth(start.getMonth() - 3); end = today;
+      } else if (preset === 'thisYear') {
+        start = new Date(today.getFullYear(), 0, 1); end = today;
+      } else if (preset === 'all') {
+        $('startDate').value = ''; $('endDate').value = '';
+        $('yearFilter').value = ''; $('monthFilter').value = ''; $('dayFilter').value = '';
+        if (autoApply) applyFilters();
+        return;
+      }
+
+      if (start) $('startDate').value = toDateInput(start);
+      if (end) $('endDate').value = toDateInput(end);
+      $('yearFilter').value = ''; $('monthFilter').value = ''; $('dayFilter').value = '';
+
+      if (autoApply) applyFilters();
+    }
+
+    function toDateInput(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    /* ── Core data vars ── */
+    const numericColumns = [
+      'generation_mw','demand_mw','load_shedding',
+      'gas','liquid_fuel','coal','hydro','solar','wind',
+      'india_bheramara_hvdc','india_tripura','india_adani','nepal'
+    ];
+
+    const sourceColumns = [
+      'gas','liquid_fuel','coal','hydro','solar','wind',
+      'india_bheramara_hvdc','india_tripura','india_adani','nepal'
+    ];
+
+    const defaultMetrics = ['generation_mw','demand_mw','load_shedding','gas','liquid_fuel','coal','hydro'];
+
+    let allRows = [];
+    let filteredRows = [];
+    let mainChart = null, mixChart = null, hourChart = null;
+
+    /* ── Date parsing ── */
+    function parseDateValue(value) {
+      if (!value) return null;
+      const text = String(value).trim();
+      let d = new Date(text);
+      if (!isNaN(d.getTime())) return d;
+
+      const m1 = text.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+      if (m1) {
+        let year = Number(m1[3]);
+        if (year < 100) year += 2000;
+        d = new Date(year, Number(m1[2])-1, Number(m1[1]), Number(m1[4]||0), Number(m1[5]||0), Number(m1[6]||0));
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      const m2 = text.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+      if (m2) {
+        d = new Date(Number(m2[1]), Number(m2[2])-1, Number(m2[3]), Number(m2[4]||0), Number(m2[5]||0), Number(m2[6]||0));
+        return isNaN(d.getTime()) ? null : d;
+      }
+      return null;
+    }
+
+    function toNumber(value) {
+      if (value === null || value === undefined || value === '') return null;
+      const n = Number(String(value).replace(/,/g, '').trim());
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function dateKey(date, mode) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth()+1).padStart(2,'0');
+      const d = String(date.getDate()).padStart(2,'0');
+      const h = String(date.getHours()).padStart(2,'0');
+      const min = String(date.getMinutes()).padStart(2,'0');
+      if (mode==='year') return `${y}`;
+      if (mode==='month') return `${y}-${m}`;
+      if (mode==='day') return `${y}-${m}-${d}`;
+      if (mode==='hour') return `${y}-${m}-${d} ${h}:00`;
+      return `${y}-${m}-${d} ${h}:${min}`;
+    }
+
+    function formatDateTime(date) {
+      if (!date) return '';
+      const y = date.getFullYear();
+      const m = String(date.getMonth()+1).padStart(2,'0');
+      const d = String(date.getDate()).padStart(2,'0');
+      const h = String(date.getHours()).padStart(2,'0');
+      const min = String(date.getMinutes()).padStart(2,'0');
+      return `${y}-${m}-${d} ${h}:${min}`;
+    }
+
+    function prettyName(col) {
+      return col.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).replace('Mw','MW').replace('Hvdc','HVDC');
+    }
+
+    function normalizeRow(row) {
+      const clean = {};
+      Object.keys(row).forEach(k => {
+        clean[String(k).trim()] = typeof row[k]==='string' ? row[k].trim() : row[k];
+      });
+      const dt = parseDateValue(clean.datetime || clean.date_time || clean.date || clean.time);
+      clean._date = dt;
+      clean._timestamp = dt ? dt.getTime() : null;
+      clean._year = dt ? dt.getFullYear() : null;
+      clean._month = dt ? dt.getMonth() : null;
+      clean._day = dt ? dt.getDay() : null;
+      clean._hour = dt ? dt.getHours() : null;
+      clean._minute = dt ? dt.getMinutes() : null;
+      clean._timeMinutes = dt ? dt.getHours()*60+dt.getMinutes() : null;
+      numericColumns.forEach(col => { clean[col] = toNumber(clean[col]); });
+      clean.remarks = clean.remarks || '';
+      return clean;
+    }
+
+    /* ── Load CSV (auto-fetch from pgcb_data.csv) ── */
+    function loadCSVFromBackend() {
+      $('loadStatus').innerHTML = `<span>Loading <strong>pgcb_data.csv</strong>…</span>`;
+      $('loadBarWrap').classList.add('visible');
+
+      fetch('pgcb_data.csv')
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          return response.text();
+        })
+        .then(csvText => {
+          Papa.parse(csvText, {
+            header: true,
+            skipEmptyLines: true,
+            dynamicTyping: false,
+            complete: function(results) {
+              $('loadBarWrap').classList.remove('visible');
+
+              allRows = results.data.map(normalizeRow).filter(r => r._date !== null);
+
+              if (!allRows.length) {
+                $('loadStatus').innerHTML = `<span class="error">No valid datetime rows found.</span>`;
+                showToast('No valid rows found', 'error');
+                return;
+              }
+
+              allRows.sort((a,b) => a._timestamp - b._timestamp);
+              populateFilters();
+              resetFilters(false);
+              applyFilters();
+
+              const bad = results.errors && results.errors.length ? ` (${results.errors.length} parse warnings)` : '';
+              $('loadStatus').innerHTML = `<span class="success">✓ ${allRows.length.toLocaleString()} rows loaded</span>${bad}`;
+              showToast(`Loaded ${allRows.length.toLocaleString()} rows`, 'success');
+            },
+            error: function(error) {
+              $('loadBarWrap').classList.remove('visible');
+              $('loadStatus').innerHTML = `<span class="error">Parse error: ${error.message}</span>`;
+              showToast('Failed to parse CSV: ' + error.message, 'error');
+            }
+          });
+        })
+        .catch(err => {
+          $('loadBarWrap').classList.remove('visible');
+          $('loadStatus').innerHTML = `<span class="error">Failed to load: ${err.message}</span>`;
+          showToast('Could not load pgcb_data.csv — ' + err.message, 'error');
+        });
+    }
+
+    /* ── Filters ── */
+    function populateFilters() {
+      const years = [...new Set(allRows.map(r=>r._year).filter(Boolean))].sort();
+      $('yearFilter').innerHTML = `<option value="">All years</option>` +
+        years.map(y=>`<option value="${y}">${y}</option>`).join('');
+
+      const remarks = [...new Set(allRows.map(r=>r.remarks).filter(Boolean))].sort();
+      $('remarksFilter').innerHTML = `<option value="">All remarks</option>` +
+        remarks.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join('');
+
+      renderMetricList();
+    }
+
+    function renderMetricList() {
+      $('metricList').innerHTML = numericColumns.map(col => {
+        const checked = defaultMetrics.includes(col) ? 'checked' : '';
+        return `<label><input type="checkbox" class="metric-check" value="${col}" ${checked}> ${prettyName(col)}</label>`;
+      }).join('');
+    }
+
+    function getSelectedMetrics() {
+      return [...document.querySelectorAll('.metric-check:checked')].map(x=>x.value);
+    }
+
+    function timeToMinutes(value, fallback) {
+      if (!value) return fallback;
+      const [h,m] = value.split(':').map(Number);
+      return h*60+m;
+    }
+
+    function applyFilters() {
+      if (!allRows.length) return;
+
+      const year = $('yearFilter').value;
+      const month = $('monthFilter').value;
+      const day = $('dayFilter').value;
+      const startDate = $('startDate').value ? new Date($('startDate').value+'T00:00:00').getTime() : -Infinity;
+      const endDate = $('endDate').value ? new Date($('endDate').value+'T23:59:59').getTime() : Infinity;
+      const startTime = timeToMinutes($('startTime').value, 0);
+      const endTime = timeToMinutes($('endTime').value, 1439);
+      const remark = $('remarksFilter').value;
+      const search = $('searchText').value.trim().toLowerCase();
+
+      filteredRows = allRows.filter(r => {
+        if (year && String(r._year) !== year) return false;
+        if (month !== '' && String(r._month) !== month) return false;
+        if (day !== '' && String(r._day) !== day) return false;
+        if (r._timestamp < startDate || r._timestamp > endDate) return false;
+        if (startTime <= endTime) {
+          if (r._timeMinutes < startTime || r._timeMinutes > endTime) return false;
+        } else {
+          if (!(r._timeMinutes >= startTime || r._timeMinutes <= endTime)) return false;
+        }
+        if (remark && r.remarks !== remark) return false;
+        if (search && !String(r.remarks||'').toLowerCase().includes(search)) return false;
+        return true;
+      });
+
+      // Show filter pill if filtering
+      const isFiltered = year || month !== '' || day !== '' || $('startDate').value || $('endDate').value || remark || search;
+      $('filterPill').style.display = isFiltered ? 'inline-flex' : 'none';
+
+      updateDashboard();
+    }
+
+    function aggregateRows(rows, metrics, mode, method) {
+      const groups = new Map();
+      rows.forEach(r => {
+        const key = dateKey(r._date, mode);
+        if (!groups.has(key)) {
+          groups.set(key, { key, values: {}, counts: {} });
+          metrics.forEach(m => {
+            groups.get(key).values[m] = method==='min' ? Infinity : method==='max' ? -Infinity : 0;
+            groups.get(key).counts[m] = 0;
+          });
+        }
+        const g = groups.get(key);
+        metrics.forEach(m => {
+          const v = r[m];
+          if (v === null || v === undefined || Number.isNaN(v)) return;
+          if (method==='max') g.values[m] = Math.max(g.values[m], v);
+          else if (method==='min') g.values[m] = Math.min(g.values[m], v);
+          else g.values[m] += v;
+          g.counts[m]++;
+        });
+      });
+
+      const data = [...groups.values()].sort((a,b)=>a.key.localeCompare(b.key));
+      data.forEach(g => {
+        metrics.forEach(m => {
+          if (!g.counts[m]) g.values[m] = null;
+          else if (method==='avg') g.values[m] = g.values[m]/g.counts[m];
+        });
+      });
+      return data;
+    }
+
+    function updateDashboard() {
+      const metrics = getSelectedMetrics();
+      const aggregateBy = $('aggregateBy').value;
+      const method = $('aggMethod').value;
+      updateStats();
+      renderMainChart(aggregateRows(filteredRows, metrics, aggregateBy, method), metrics);
+      renderMixChart();
+      renderHourChart();
+      renderTable();
+    }
+
+    /* ── Stats ── */
+    function avg(rows, col) {
+      let sum=0, count=0;
+      rows.forEach(r => {
+        const v=r[col];
+        if (v!==null && v!==undefined && Number.isFinite(v)) { sum+=v; count++; }
+      });
+      return count ? sum/count : null;
+    }
+
+    function maxRow(rows, col) {
+      let best = null;
+      rows.forEach(r => {
+        const v=r[col];
+        if (v===null || v===undefined || !Number.isFinite(v)) return;
+        if (!best || v>best[col]) best = r;
+      });
+      return best;
+    }
+
+    function updateStats() {
+      const loaded = allRows.length;
+      const filtered = filteredRows.length;
+      const minDate = filteredRows.length ? filteredRows[0]._date : null;
+      const maxDate = filteredRows.length ? filteredRows[filteredRows.length-1]._date : null;
+      const avgGeneration = avg(filteredRows, 'generation_mw');
+      const avgDemand = avg(filteredRows, 'demand_mw');
+      const avgLoadShedding = avg(filteredRows, 'load_shedding');
+      const peak = maxRow(filteredRows, 'generation_mw');
+
+      $('summaryStats').innerHTML = `
+        <div class="stat-card blue">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-label">Loaded rows</div>
+          <div class="stat-value">${loaded.toLocaleString()}</div>
+          <div class="stat-sub">Total records in file</div>
+        </div>
+        <div class="stat-card ${filtered < loaded ? 'purple' : 'slate'}">
+          <div class="stat-icon">🔍</div>
+          <div class="stat-label">Filtered rows</div>
+          <div class="stat-value">${filtered.toLocaleString()}</div>
+          <div class="stat-sub">${loaded ? Math.round(filtered/loaded*100) : 0}% of total</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon">🔋</div>
+          <div class="stat-label">Avg generation</div>
+          <div class="stat-value">${avgGeneration===null ? '—' : avgGeneration.toFixed(0)}</div>
+          <div class="stat-sub">MW</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-icon">📡</div>
+          <div class="stat-label">Avg demand</div>
+          <div class="stat-value">${avgDemand===null ? '—' : avgDemand.toFixed(0)}</div>
+          <div class="stat-sub">MW</div>
+        </div>
+        <div class="stat-card ${avgLoadShedding !== null && avgLoadShedding > 0 ? 'red' : 'slate'}">
+          <div class="stat-icon">🚨</div>
+          <div class="stat-label">Avg load shedding</div>
+          <div class="stat-value">${avgLoadShedding===null ? '—' : avgLoadShedding.toFixed(0)}</div>
+          <div class="stat-sub">MW</div>
+        </div>
+        <div class="stat-card teal">
+          <div class="stat-icon">🏆</div>
+          <div class="stat-label">Peak generation</div>
+          <div class="stat-value">${peak ? Number(peak.generation_mw).toFixed(0) : '—'}</div>
+          <div class="stat-sub">${peak ? 'MW at ' + formatDateTime(peak._date) : 'MW'}</div>
+        </div>
+        <div class="stat-card indigo">
+          <div class="stat-icon">📅</div>
+          <div class="stat-label">Date range start</div>
+          <div class="stat-value" style="font-size:14px; line-height:1.3;">${minDate ? formatDateTime(minDate) : '—'}</div>
+          <div class="stat-sub"> </div>
+        </div>
+        <div class="stat-card indigo">
+          <div class="stat-icon">📅</div>
+          <div class="stat-label">Date range end</div>
+          <div class="stat-value" style="font-size:14px; line-height:1.3;">${maxDate ? formatDateTime(maxDate) : '—'}</div>
+          <div class="stat-sub"> </div>
+        </div>
+      `;
+
+      const insight = $('quickInsight');
+      const parts = [];
+      if (filteredRows.length) {
+        const gap = avgDemand!==null && avgGeneration!==null ? avgDemand-avgGeneration : null;
+        if (gap!==null) parts.push(`Average demand–generation gap: <strong>${gap.toFixed(1)} MW</strong>.`);
+        if (avgLoadShedding!==null && avgLoadShedding>0) {
+          parts.push(`⚠ Load shedding present in this period.`);
+        } else {
+          parts.push(`✓ No average load shedding in this period.`);
+        }
+        if (peak) parts.push(`Peak generation of <strong>${Number(peak.generation_mw).toFixed(0)} MW</strong> at ${formatDateTime(peak._date)}.`);
+        insight.style.display = 'flex';
+        insight.querySelector('p').innerHTML = parts.join(' ');
+      } else {
+        insight.style.display = filteredRows.length === 0 && allRows.length > 0 ? 'flex' : 'none';
+        insight.querySelector('p').textContent = 'No rows match the selected filters. Try widening your date range or resetting filters.';
+      }
+    }
+
+    /* ── Charts ── */
+    const chartColors = [
+      '#1a56db','#f97316','#dc2626','#16a34a','#7c3aed',
+      '#0d9488','#d97706','#db2777','#0284c7','#65a30d',
+      '#ea580c','#9333ea','#0891b2'
+    ];
+
+    function toggleChartCanvas(canvasId, emptyId, hasData) {
+      $(canvasId).style.display = hasData ? 'block' : 'none';
+      $(emptyId).style.display = hasData ? 'none' : 'flex';
+    }
+
+    function renderMainChart(grouped, metrics) {
+      if (!grouped.length || !metrics.length) {
+        toggleChartCanvas('mainChart','mainChartEmpty',false);
+        if (mainChart) { mainChart.destroy(); mainChart=null; }
+        return;
+      }
+      toggleChartCanvas('mainChart','mainChartEmpty',true);
+
+      const labels = grouped.map(g=>g.key);
+      const datasets = metrics.map((col,i) => ({
+        label: prettyName(col),
+        data: grouped.map(g=>g.values[col]),
+        borderColor: chartColors[i % chartColors.length],
+        backgroundColor: chartColors[i % chartColors.length] + '22',
+        borderWidth: 2,
+        tension: 0.25,
+        pointRadius: labels.length>250 ? 0 : 2,
+        fill: false
+      }));
+
+      if (mainChart) mainChart.destroy();
+      mainChart = new Chart($('mainChart'), {
+        type: $('chartType').value,
+        data: { labels, datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode:'index', intersect:false },
+          plugins: {
+            legend: { position:'bottom', labels:{ boxWidth:12, padding:12, font:{size:12} } },
+            tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${Number(ctx.parsed.y).toFixed(2)} MW` } }
+          },
+          scales: {
+            x: { ticks:{ maxTicksLimit:14, autoSkip:true, font:{size:11} } },
+            y: { title:{ display:true, text:'MW', font:{size:12} }, beginAtZero:true, ticks:{font:{size:11}} }
+          }
+        }
+      });
+    }
+
+    function renderMixChart() {
+      const labels=[], values=[];
+      sourceColumns.forEach(col => {
+        const v = avg(filteredRows, col);
+        if (v!==null && v>0) { labels.push(prettyName(col)); values.push(v); }
+      });
+
+      if (!values.length) {
+        toggleChartCanvas('mixChart','mixChartEmpty',false);
+        if (mixChart) { mixChart.destroy(); mixChart=null; }
+        return;
+      }
+      toggleChartCanvas('mixChart','mixChartEmpty',true);
+
+      if (mixChart) mixChart.destroy();
+      mixChart = new Chart($('mixChart'), {
+        type:'doughnut',
+        data: { labels, datasets:[{ data:values, backgroundColor:chartColors, borderWidth:2, borderColor:'white' }] },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins: {
+            legend:{ position:'bottom', labels:{ boxWidth:12, padding:10, font:{size:11} } },
+            tooltip:{ callbacks:{ label: ctx => {
+              const total=values.reduce((a,b)=>a+b,0);
+              const pct=total ? (Number(ctx.parsed)/total*100).toFixed(1) : 0;
+              return `${ctx.label}: ${Number(ctx.parsed).toFixed(1)} MW (${pct}%)`;
+            }}}
+          }
+        }
+      });
+    }
+
+    function renderHourChart() {
+      const metrics = ['generation_mw','demand_mw','load_shedding'];
+      const groups = Array.from({length:24},(_,h)=>({
+        key: String(h).padStart(2,'0')+':00',
+        values: Object.fromEntries(metrics.map(m=>[m,0])),
+        counts: Object.fromEntries(metrics.map(m=>[m,0]))
+      }));
+
+      filteredRows.forEach(r => {
+        const h=r._hour;
+        if (h===null || h===undefined) return;
+        metrics.forEach(m => {
+          const v=r[m];
+          if (v!==null && v!==undefined && Number.isFinite(v)) {
+            groups[h].values[m]+=v; groups[h].counts[m]++;
+          }
+        });
+      });
+      groups.forEach(g => metrics.forEach(m => {
+        g.values[m] = g.counts[m] ? g.values[m]/g.counts[m] : null;
+      }));
+
+      const hasData = groups.some(g=>metrics.some(m=>g.values[m]!==null));
+      if (!hasData) {
+        toggleChartCanvas('hourChart','hourChartEmpty',false);
+        if (hourChart) { hourChart.destroy(); hourChart=null; }
+        return;
+      }
+      toggleChartCanvas('hourChart','hourChartEmpty',true);
+
+      if (hourChart) hourChart.destroy();
+      hourChart = new Chart($('hourChart'), {
+        type:'line',
+        data: {
+          labels: groups.map(g=>g.key),
+          datasets: metrics.map((m,i) => ({
+            label: prettyName(m),
+            data: groups.map(g=>g.values[m]),
+            borderColor: chartColors[i],
+            backgroundColor: chartColors[i]+'22',
+            borderWidth:2, tension:0.25, pointRadius:3, fill:false
+          }))
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          interaction:{mode:'index',intersect:false},
+          plugins:{ legend:{position:'bottom',labels:{boxWidth:12,padding:10,font:{size:11}}} },
+          scales:{ y:{title:{display:true,text:'Avg MW',font:{size:11}},beginAtZero:true,ticks:{font:{size:11}}} }
+        }
+      });
+    }
+
+    /* ── Table ── */
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+
+    function renderTable() {
+      const columns = ['datetime', ...numericColumns, 'remarks'];
+      const rows = filteredRows.slice(0, 200);
+
+      $('tableCount').textContent = filteredRows.length
+        ? `Showing ${Math.min(200,filteredRows.length).toLocaleString()} of ${filteredRows.length.toLocaleString()} rows`
+        : 'No rows';
+
+      if (!rows.length) {
+        $('tableWrap').innerHTML = `<div class="chart-empty"><span class="empty-icon">📋</span><p>No rows match your current filters.</p></div>`;
+        return;
+      }
+
+      const header = columns.map(c=>`<th>${prettyName(c)}</th>`).join('');
+      const body = rows.map(r => {
+        return '<tr>' + columns.map(c => {
+          const value = c==='datetime' ? formatDateTime(r._date) : r[c];
+          const isNum = numericColumns.includes(c);
+          let cls = isNum ? 'num' : '';
+          if (c==='load_shedding' && value>0) cls += ' high-shed';
+          if (c==='generation_mw') cls += ' peak-gen';
+          return `<td class="${cls.trim()}">${escapeHtml(value??'')}</td>`;
+        }).join('') + '</tr>';
+      }).join('');
+
+      $('tableWrap').innerHTML = `<table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    /* ── Reset & Download ── */
+    function resetFilters(apply=true) {
+      $('yearFilter').value=''; $('monthFilter').value=''; $('dayFilter').value='';
+      $('startDate').value=''; $('endDate').value='';
+      $('startTime').value=''; $('endTime').value='';
+      $('remarksFilter').value=''; $('searchText').value='';
+      $('aggregateBy').value='day'; $('aggMethod').value='avg'; $('chartType').value='line';
+      document.querySelectorAll('.metric-check').forEach(ch => {
+        ch.checked = defaultMetrics.includes(ch.value);
+      });
+      if (apply) applyFilters();
+    }
+
+    function downloadFilteredCSV() {
+      if (!filteredRows.length) { showToast('No filtered rows to download','error'); return; }
+      const columns = ['datetime',...numericColumns,'remarks'];
+      const csvRows = [columns.join(',')];
+      filteredRows.forEach(r => {
+        const row = columns.map(c => {
+          const value = c==='datetime' ? formatDateTime(r._date) : (r[c]??'');
+          return `"${String(value).replace(/"/g,'""')}"`;
+        });
+        csvRows.push(row.join(','));
+      });
+      const blob = new Blob([csvRows.join('\n')], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href=url; a.download='filtered_pgcb_data.csv';
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
+      showToast(`Downloaded ${filteredRows.length.toLocaleString()} rows`, 'success');
+    }
+
+    /* ── Event listeners ── */
+    $('applyBtn').addEventListener('click', applyFilters);
+    $('resetBtn').addEventListener('click', () => resetFilters(true));
+    $('aggregateBy').addEventListener('change', updateDashboard);
+    $('aggMethod').addEventListener('change', updateDashboard);
+    $('chartType').addEventListener('change', updateDashboard);
+    $('downloadBtn').addEventListener('click', downloadFilteredCSV);
+
+    // Auto-apply on filter change
+    ['yearFilter','monthFilter','dayFilter','startDate','endDate','startTime','endTime','remarksFilter','searchText'].forEach(id => {
+      const el = $(id);
+      if (!el) return;
+      el.addEventListener('change', () => { if (autoApply) applyFilters(); });
+      el.addEventListener('input', () => { if (autoApply && id==='searchText') applyFilters(); });
+    });
+
+    $('selectAllBtn').addEventListener('click', () => {
+      document.querySelectorAll('.metric-check').forEach(ch=>ch.checked=true);
+      updateDashboard();
+    });
+
+    $('clearMetricsBtn').addEventListener('click', () => {
+      document.querySelectorAll('.metric-check').forEach(ch=>ch.checked=false);
+      updateDashboard();
+    });
+
+    $('metricList').addEventListener('change', e => {
+      if (e.target.classList.contains('metric-check')) updateDashboard();
+    });
+
+    // Keyboard shortcut: Enter to apply, Escape to reset
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.target.matches('input[type="text"]')) applyFilters();
+      if (e.key === 'Escape') resetFilters(true);
+    });
+
+    /* ── Init: auto-load CSV ── */
+    renderMetricList();
+    filteredRows = [];
+    updateDashboard();
+    loadCSVFromBackend();
+  </script>
+</body>
+</html>
