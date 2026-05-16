@@ -1627,7 +1627,7 @@
       $('loadStatus').innerHTML = `<span>Loading <strong>pgcb_data.csv</strong>…</span>`;
       $('loadBarWrap').classList.add('visible');
 
-      fetch('pgcb_data.csv')
+      fetch('pgcb_data.csv?t=' + Date.now())
         .then(response => {
           if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           return response.text();
