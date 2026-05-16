@@ -1628,43 +1628,54 @@
 
     /* ── Load CSV (auto-fetch from pgcb_data.csv) ── */
     function loadCSVFromBackend() {
-      $('loadStatus').innerHTML = `<span>Loading <strong>pgcb_data.csv</strong> (Optimized worker mode)…</span>`;
+      $('loadStatus').innerHTML = `<span>Loading <strong>pgcb_data.csv</strong>…</span>`;
       $('loadBarWrap').classList.add('visible');
 
-      Papa.parse('pgcb_data.csv?t=' + Date.now(), {
-        download: true,
-        header: true,
-        skipEmptyLines: true,
-        dynamicTyping: false,
-        fastMode: true, // Speeds up parsing since there are no quoted fields
-        worker: true,   // Offloads parsing and downloading to a background thread
-        complete: function(results) {
+      // Use no-cache so the browser asks GitHub if the file changed.
+      // If it hasn't, it loads the 6MB file instantly from the local disk cache (304 Not Modified).
+      fetch('pgcb_data.csv', { cache: 'no-cache' })
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          return response.text();
+        })
+        .then(csvText => {
+          Papa.parse(csvText, {
+            header: true,
+            skipEmptyLines: true,
+            dynamicTyping: false,
+            fastMode: true, // Speeds up parsing heavily
+            complete: function(results) {
+              $('loadBarWrap').classList.remove('visible');
+
+              allRows = results.data.map(normalizeRow).filter(r => r._date !== null);
+
+              if (!allRows.length) {
+                $('loadStatus').innerHTML = `<span class="error">No valid datetime rows found.</span>`;
+                showToast('No valid rows found', 'error');
+                return;
+              }
+
+              allRows.sort((a,b) => a._timestamp - b._timestamp);
+              populateFilters();
+              resetFilters(false);
+              applyFilters();
+
+              const bad = results.errors && results.errors.length ? ` (${results.errors.length} parse warnings)` : '';
+              $('loadStatus').innerHTML = `<span class="success">✓ ${allRows.length.toLocaleString()} rows loaded</span>${bad}`;
+              showToast(`Loaded ${allRows.length.toLocaleString()} rows`, 'success');
+            },
+            error: function(error) {
+              $('loadBarWrap').classList.remove('visible');
+              $('loadStatus').innerHTML = `<span class="error">Parse error: ${error.message}</span>`;
+              showToast('Failed to parse CSV: ' + error.message, 'error');
+            }
+          });
+        })
+        .catch(err => {
           $('loadBarWrap').classList.remove('visible');
-
-          // Process the parsed rows (this happens on main thread, but is much faster now)
-          allRows = results.data.map(normalizeRow).filter(r => r._date !== null);
-
-          if (!allRows.length) {
-            $('loadStatus').innerHTML = `<span class="error">No valid datetime rows found.</span>`;
-            showToast('No valid rows found', 'error');
-            return;
-          }
-
-          allRows.sort((a,b) => a._timestamp - b._timestamp);
-          populateFilters();
-          resetFilters(false);
-          applyFilters();
-
-          const bad = results.errors && results.errors.length ? ` (${results.errors.length} parse warnings)` : '';
-          $('loadStatus').innerHTML = `<span class="success">✓ ${allRows.length.toLocaleString()} rows loaded</span>${bad}`;
-          showToast(`Loaded ${allRows.length.toLocaleString()} rows`, 'success');
-        },
-        error: function(error) {
-          $('loadBarWrap').classList.remove('visible');
-          $('loadStatus').innerHTML = `<span class="error">Parse error: ${error.message}</span>`;
-          showToast('Failed to parse CSV: ' + error.message, 'error');
-        }
-      });
+          $('loadStatus').innerHTML = `<span class="error">Failed to load: ${err.message}</span>`;
+          showToast('Could not load pgcb_data.csv — ' + err.message, 'error');
+        });
     }
 
     /* ── Filters ── */
