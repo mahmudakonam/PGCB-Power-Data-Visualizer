@@ -1550,30 +1550,21 @@
     /* ── Date parsing ── */
     function parseDateValue(value) {
       if (!value) return null;
-      const text = String(value).trim();
-      
-      // Try parsing M/D/YY or MM/DD/YYYY exactly to avoid browser inconsistencies
-      // Match: Month / Day / Year (2 or 4 digits) Time
-      const m1 = text.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-      if (m1) {
-        let year = Number(m1[3]);
-        if (year < 100) year += 2000;
-        // JS Date: year, month (0-11), day, hour, min, sec
-        const month = Number(m1[1]) - 1; // M is group 1
-        const day = Number(m1[2]);       // D is group 2
-        let d = new Date(year, month, day, Number(m1[4]||0), Number(m1[5]||0), Number(m1[6]||0));
-        if (!isNaN(d.getTime())) return d;
+      // Fast path for M/D/YY H:mm
+      const s = value.indexOf(' ');
+      if (s !== -1) {
+        const dp = value.substring(0, s);
+        const tp = value.substring(s+1);
+        const dParts = dp.split('/');
+        if (dParts.length === 3) {
+          let y = parseInt(dParts[2], 10);
+          if (y < 100) y += 2000;
+          const tParts = tp.split(':');
+          return new Date(y, parseInt(dParts[0],10)-1, parseInt(dParts[1],10), parseInt(tParts[0]||0,10), parseInt(tParts[1]||0,10));
+        }
       }
-
-      // Try YYYY-MM-DD
-      const m2 = text.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-      if (m2) {
-        let d = new Date(Number(m2[1]), Number(m2[2])-1, Number(m2[3]), Number(m2[4]||0), Number(m2[5]||0), Number(m2[6]||0));
-        if (!isNaN(d.getTime())) return d;
-      }
-      
       // Fallback
-      let d = new Date(text);
+      let d = new Date(value);
       return isNaN(d.getTime()) ? null : d;
     }
 
@@ -1611,22 +1602,28 @@
     }
 
     function normalizeRow(row) {
-      const clean = {};
-      Object.keys(row).forEach(k => {
-        clean[String(k).trim()] = typeof row[k]==='string' ? row[k].trim() : row[k];
+      const dtVal = row.datetime || row.date_time || row.date || row.time;
+      const dt = parseDateValue(dtVal);
+      row._date = dt;
+      if (dt) {
+        row._timestamp = dt.getTime();
+        row._year = dt.getFullYear();
+        row._month = dt.getMonth();
+        row._day = dt.getDay();
+        row._hour = dt.getHours();
+        row._minute = dt.getMinutes();
+        row._timeMinutes = row._hour * 60 + row._minute;
+      } else {
+        row._timestamp = row._year = row._month = row._day = row._hour = row._minute = row._timeMinutes = null;
+      }
+      
+      numericColumns.forEach(col => {
+        if (row[col] !== undefined) {
+          row[col] = typeof row[col] === 'string' ? toNumber(row[col].trim()) : toNumber(row[col]);
+        }
       });
-      const dt = parseDateValue(clean.datetime || clean.date_time || clean.date || clean.time);
-      clean._date = dt;
-      clean._timestamp = dt ? dt.getTime() : null;
-      clean._year = dt ? dt.getFullYear() : null;
-      clean._month = dt ? dt.getMonth() : null;
-      clean._day = dt ? dt.getDay() : null;
-      clean._hour = dt ? dt.getHours() : null;
-      clean._minute = dt ? dt.getMinutes() : null;
-      clean._timeMinutes = dt ? dt.getHours()*60+dt.getMinutes() : null;
-      numericColumns.forEach(col => { clean[col] = toNumber(clean[col]); });
-      clean.remarks = clean.remarks || '';
-      return clean;
+      row.remarks = row.remarks || '';
+      return row;
     }
 
     /* ── Load CSV (auto-fetch from pgcb_data.csv) ── */
