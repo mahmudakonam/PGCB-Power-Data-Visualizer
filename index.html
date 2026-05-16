@@ -308,8 +308,8 @@
     }
 
     /* Date row */
-    .date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .date-row { display: flex; flex-direction: column; gap: 10px; }
+    .time-row { display: flex; flex-direction: column; gap: 10px; }
 
     /* Quick presets */
     .presets {
@@ -1348,6 +1348,9 @@
   <footer>
     PGCB Power Data Visualizer - By <a href="https://www.linkedin.com/in/mahmudakon/" target="_blank">Md Mahmud Akon</a> | Data from <a href="https://erp.powergrid.gov.bd/w/generations/view_generations" target="_blank">Power Grid Bangladesh PLC</a>
   </footer>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toastContainer"></div>
 
   <!-- ── SCRIPTS ── -->
   <script>
