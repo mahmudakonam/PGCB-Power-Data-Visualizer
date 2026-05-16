@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PGCB AI Demand Forecast</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-color: #0f172a; /* Slate 900 */
+      --card-bg: #1e293b; /* Slate 800 */
+      --text-main: #f8fafc; /* Slate 50 */
+      --text-muted: #94a3b8; /* Slate 400 */
+      --border-color: #334155; /* Slate 700 */
+      --header-h: 60px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--bg-color);
+      border-bottom: 1px solid var(--border-color);
+      color: white;
+      padding: 0 24px;
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-icon {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,.15);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    header h1 {
+      font-size: 18px; font-weight: 700; flex: 1;
+    }
+    .nav-btn {
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2);
+      color: white; font-size: 12px; font-weight: 700;
+      padding: 5px 12px; border-radius: 999px;
+      text-decoration: none; transition: all .2s;
+    }
+    .nav-btn:hover { background: rgba(255,255,255,.2); }
+
+    .live-btn {
+      background: rgba(16,185,129,.15); border-color: rgba(16,185,129,.3); color: #6ee7b7;
+    }
+    .live-btn:hover { background: rgba(16,185,129,.25); }
+    
+    .ai-btn {
+      background: rgba(59,130,246,.15); border-color: rgba(59,130,246,.3); color: #93c5fd;
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+    .page-title {
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .page-title h2 {
+      font-size: 28px;
+      background: -webkit-linear-gradient(45deg, #60a5fa, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .page-title p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    /* ── CHARTS ── */
+    .chart-section {
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .chart-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .chart-header h3 { font-size: 16px; font-weight: 600; }
+    .chart-body { padding: 20px; }
+    
+    .chart-empty {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 40px; color: var(--text-muted); text-align: center;
+    }
+    .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.7; }
+    
+    .canvas-container {
+      position: relative;
+      height: 350px;
+      width: 100%;
+    }
+
+    footer {
+      text-align: center; padding: 24px; color: var(--text-muted); font-size: 12px;
+      border-top: 1px solid var(--border-color); margin-top: 40px;
+    }
+    footer a { color: #60a5fa; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-icon">⚡</div>
+    <h1>PGCB Power Data Visualizer</h1>
+    <a href="index.html" class="nav-btn">📊 Dashboard</a>
+    <a href="live.html" class="nav-btn live-btn">📡 Live Data</a>
+    <a href="forecast.html" class="nav-btn ai-btn">🤖 AI Forecast</a>
+  </header>
+
+  <div class="container">
+    <div class="page-title">
+      <h2>Advanced Machine Learning Forecast</h2>
+      <p id="forecastTimestamp">Loading latest prediction model...</p>
+    </div>
+
+    <!-- DEMAND FORECAST -->
+    <section class="chart-section" style="border: 1px solid #3b82f6; box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);">
+      <div class="chart-header">
+        <h3 style="color: #93c5fd;">⚡ Total Power Demand Prediction (Next 24 Hours)</h3>
+      </div>
+      <div class="chart-body">
+        <div id="demandEmpty" class="chart-empty">
+          <span class="empty-icon">⏳</span>
+          <p id="demandStatusText">Fetching data from GitHub Actions...</p>
+        </div>
+        <div class="canvas-container">
+          <canvas id="demandChart" style="display:none;"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- GENERATION MIX FORECAST -->
+    <section class="chart-section" style="border: 1px solid #c084fc; box-shadow: 0 0 20px rgba(192, 132, 252, 0.1);">
+      <div class="chart-header">
+        <h3 style="color: #d8b4fe;">🏭 Predicted Generation Fuel Mix (Next 24 Hours)</h3>
+      </div>
+      <div class="chart-body">
+        <div id="mixEmpty" class="chart-empty">
+          <span class="empty-icon">⏳</span>
+          <p id="mixStatusText">Waiting for model execution...</p>
+        </div>
+        <div class="canvas-container" style="height: 400px;">
+          <canvas id="mixChart" style="display:none;"></canvas>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    PGCB Power Data Visualizer - ML Forecast Module | Data updated hourly via GitHub Actions
+  </footer>
+
+  <script>
+    const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mahmudakonam/PGCB-ML-Forecast/main/forecast.json';
+
+    // Beautiful palette for generation sources
+    const mixColors = {
+      'gas': '#f97316',               // Orange
+      'liquid_fuel': '#dc2626',       // Red
+      'coal': '#57534e',              // Stone/Dark Gray
+      'hydro': '#0ea5e9',             // Cyan
+      'solar': '#eab308',             // Yellow
+      'wind': '#10b981',              // Emerald
+      'india_bheramara_hvdc': '#8b5cf6', // Violet
+      'india_tripura': '#d946ef',     // Fuchsia
+      'india_adani': '#ec4899',       // Pink
+      'nepal': '#06b6d4'              // Light Cyan
+    };
+
+    function prettyName(key) {
+      return key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+
+    async function loadForecastData() {
+      try {
+        const response = await fetch(GITHUB_RAW_URL, { cache: 'no-store' });
+        if (!response.ok) throw new Error('Forecast file not found on GitHub');
+        
+        const data = await response.json();
+        
+        if (!data.forecast || !data.forecast.length) {
+          throw new Error('Forecast array is empty');
+        }
+
+        document.getElementById('forecastTimestamp').textContent = `Model last run at: ${data.generated_at} (UTC)`;
+        
+        renderDemandChart(data.forecast);
+        renderMixChart(data.forecast);
+
+      } catch (err) {
+        console.error('Failed to load forecast:', err);
+        const errMsg = `<span class="empty-icon">❌</span><p style="color:#ef4444;">Failed to load forecast. Please wait for the GitHub Action to finish running.</p>`;
+        document.getElementById('demandEmpty').innerHTML = errMsg;
+        document.getElementById('mixEmpty').innerHTML = errMsg;
+      }
+    }
+
+    function renderDemandChart(forecast) {
+      document.getElementById('demandEmpty').style.display = 'none';
+      const canvas = document.getElementById('demandChart');
+      canvas.style.display = 'block';
+
+      const labels = forecast.map(f => {
+         const d = new Date(f.datetime);
+         return d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      });
+      const demandData = forecast.map(f => f.demand_mw_forecast);
+
+      const ctx = canvas.getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+      gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)'); // Blue top
+      gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)'); // Transparent bottom
+
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Predicted Total Demand (MW)',
+            data: demandData,
+            borderColor: '#3b82f6',
+            backgroundColor: gradient,
+            borderWidth: 3,
+            tension: 0.4, // Smooth curves
+            fill: true,
+            pointBackgroundColor: '#fff',
+            pointBorderColor: '#3b82f6',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.9)',
+              titleColor: '#fff', bodyColor: '#93c5fd',
+              padding: 12, borderColor: '#334155', borderWidth: 1
+            }
+          },
+          scales: {
+            x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+            y: { 
+              ticks: { color: '#94a3b8' }, 
+              grid: { color: 'rgba(51, 65, 85, 0.5)', borderDash: [5, 5] },
+              title: { display: true, text: 'Megawatts (MW)', color: '#94a3b8' }
+            }
+          }
+        }
+      });
+    }
+
+    function renderMixChart(forecast) {
+      document.getElementById('mixEmpty').style.display = 'none';
+      const canvas = document.getElementById('mixChart');
+      canvas.style.display = 'block';
+
+      const labels = forecast.map(f => {
+         const d = new Date(f.datetime);
+         return d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      });
+
+      // Extract all keys from the first generation mix object
+      const mixKeys = Object.keys(forecast[0].generation_mix_forecast);
+      
+      const datasets = mixKeys.map(key => {
+        return {
+          label: prettyName(key),
+          data: forecast.map(f => Math.max(0, f.generation_mix_forecast[key])), // Prevent negative predictions
+          backgroundColor: mixColors[key] || '#94a3b8',
+          fill: true,
+          borderWidth: 0,
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 0
+        };
+      });
+
+      new Chart(canvas.getContext('2d'), {
+        type: 'line', // We use line chart with fill: true for a stacked area chart effect
+        data: { labels, datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#cbd5e1', usePointStyle: true, padding: 20 } },
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.9)',
+              padding: 12, borderColor: '#334155', borderWidth: 1,
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${Number(ctx.raw).toFixed(1)} MW`
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+            y: { 
+              stacked: true, // This creates the stacked area chart
+              ticks: { color: '#94a3b8' }, 
+              grid: { color: 'rgba(51, 65, 85, 0.5)' },
+              title: { display: true, text: 'Megawatts (MW)', color: '#94a3b8' }
+            }
+          }
+        }
+      });
+    }
+
+    // Initialize
+    loadForecastData();
+  </script>
+</body>
+</html>

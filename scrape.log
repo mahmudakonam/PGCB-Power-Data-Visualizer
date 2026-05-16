@@ -1,0 +1,24 @@
+
+╔══════════════════════════════════════════════════════╗
+║     PGCB Power Generation Data Scraper v1.0         ║
+╚══════════════════════════════════════════════════════╝
+
+📁 Output file: /Users/mahmudakon/PGCB DATA/pgcb_live_data.csv
+📊 Existing entries: 100,407
+
+🔍 Fetching page 1 to discover total pages...
+📄 Total pages available: 1,981
+🎯 Scraping pages 1 to 1 (1 pages)
+
+  📥 Page 1/1 [100%] — 51 rows (0 new) | Total: 0 new | 0.0s elapsed, ~0s remaining     
+
+═══════════════════════════════════════════════════════
+✅ Scraping complete!
+   Pages scraped: 1
+   Rows found: 51
+   New rows added: 0
+   Duplicates skipped: 51
+   Time elapsed: 0.0s
+   Output file: /Users/mahmudakon/PGCB DATA/pgcb_live_data.csv
+═══════════════════════════════════════════════════════
+
