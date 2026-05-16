@@ -392,20 +392,25 @@ function saveRows(rows, isNewFile) {
 
   const newCsvLines = rows.map(rowToCSV);
 
-  if (isNewFile || !fs.existsSync(OUTPUT_FILE)) {
-    // Create new file with header
-    const content = CSV_HEADER + '\n' + newCsvLines.join('\n') + '\n';
-    fs.writeFileSync(OUTPUT_FILE, content, 'utf8');
-  } else {
-    // Read existing file to insert new rows at the top (after header)
-    const existingContent = fs.readFileSync(OUTPUT_FILE, 'utf8');
-    const existingLines = existingContent.split('\n').filter(Boolean);
-    const header = existingLines.shift() || CSV_HEADER;
-    
-    // Combine: header + new lines + existing lines
-    const finalContent = header + '\n' + newCsvLines.join('\n') + '\n' + existingLines.join('\n') + '\n';
-    fs.writeFileSync(OUTPUT_FILE, finalContent, 'utf8');
-  }
+  // Helper to update a specific file
+  const updateFile = (filepath) => {
+    if (isNewFile || !fs.existsSync(filepath)) {
+      const content = CSV_HEADER + '\n' + newCsvLines.join('\n') + '\n';
+      fs.writeFileSync(filepath, content, 'utf8');
+    } else {
+      const existingContent = fs.readFileSync(filepath, 'utf8');
+      // Normalize line endings to \n to prevent PapaParse field limit errors
+      const existingLines = existingContent.replace(/\r/g, '').split('\n').filter(Boolean);
+      const header = existingLines.shift() || CSV_HEADER;
+      
+      const finalContent = header + '\n' + newCsvLines.join('\n') + '\n' + existingLines.join('\n') + '\n';
+      fs.writeFileSync(filepath, finalContent, 'utf8');
+    }
+  };
+
+  // Update both files so both dashboards stay in sync
+  updateFile(OUTPUT_FILE); // pgcb_live_data.csv
+  updateFile(path.join(__dirname, 'pgcb_data.csv')); // pgcb_data.csv
 }
 
 // ─── Run ─────────────────────────────────────────────────────────────
