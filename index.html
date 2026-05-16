@@ -1551,23 +1551,30 @@
     function parseDateValue(value) {
       if (!value) return null;
       const text = String(value).trim();
-      let d = new Date(text);
-      if (!isNaN(d.getTime())) return d;
-
+      
+      // Try parsing M/D/YY or MM/DD/YYYY exactly to avoid browser inconsistencies
+      // Match: Month / Day / Year (2 or 4 digits) Time
       const m1 = text.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
       if (m1) {
         let year = Number(m1[3]);
         if (year < 100) year += 2000;
-        d = new Date(year, Number(m1[2])-1, Number(m1[1]), Number(m1[4]||0), Number(m1[5]||0), Number(m1[6]||0));
-        return isNaN(d.getTime()) ? null : d;
+        // JS Date: year, month (0-11), day, hour, min, sec
+        const month = Number(m1[1]) - 1; // M is group 1
+        const day = Number(m1[2]);       // D is group 2
+        let d = new Date(year, month, day, Number(m1[4]||0), Number(m1[5]||0), Number(m1[6]||0));
+        if (!isNaN(d.getTime())) return d;
       }
 
+      // Try YYYY-MM-DD
       const m2 = text.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
       if (m2) {
-        d = new Date(Number(m2[1]), Number(m2[2])-1, Number(m2[3]), Number(m2[4]||0), Number(m2[5]||0), Number(m2[6]||0));
-        return isNaN(d.getTime()) ? null : d;
+        let d = new Date(Number(m2[1]), Number(m2[2])-1, Number(m2[3]), Number(m2[4]||0), Number(m2[5]||0), Number(m2[6]||0));
+        if (!isNaN(d.getTime())) return d;
       }
-      return null;
+      
+      // Fallback
+      let d = new Date(text);
+      return isNaN(d.getTime()) ? null : d;
     }
 
     function toNumber(value) {
