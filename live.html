@@ -92,12 +92,6 @@
     td{color:var(--text);font-family:'DM Mono',monospace;font-size:12px}
     td:first-child{font-family:inherit;font-size:13px}
 
-    /* Refresh bar */
-    .refresh-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:20px;font-size:13px}
-    .refresh-bar span{flex:1;color:var(--muted)}
-    .refresh-bar strong{color:var(--text)}
-    .refresh-btn{background:var(--primary);color:white;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
-    .refresh-btn:hover{background:var(--primary-dark);transform:translateY(-1px)}
 
     /* Two-col */
     .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -121,12 +115,6 @@
   </header>
 
   <div class="container">
-    <!-- Refresh Bar -->
-    <div class="refresh-bar">
-      <span>⏱ Next refresh in <strong id="countdown">60:00</strong></span>
-      <span>Last update: <strong id="lastUpdate">—</strong></span>
-      <button class="refresh-btn" onclick="loadData()">🔄 Refresh Now</button>
-    </div>
 
     <!-- Hero -->
     <div class="hero">
@@ -206,7 +194,6 @@
 
     /* ── Load data (always use CSV with cache buster) ── */
     async function loadData(){
-      document.getElementById('lastUpdate').textContent='Loading…';
       let rows=[];
       try{
         // Add timestamp parameter to prevent browser and CDN caching
@@ -231,7 +218,6 @@
       rows.sort((a,b)=>a._ts-b._ts);
       liveRows=rows;
       updateUI();
-      document.getElementById('lastUpdate').textContent=new Date().toLocaleTimeString();
       resetCountdown();
     }
 
@@ -293,8 +279,6 @@
     /* ── Countdown ── */
     function resetCountdown(){countSec=3600;if(refreshTimer)clearInterval(refreshTimer);
       refreshTimer=setInterval(()=>{countSec--;if(countSec<=0){loadData();return}
-        const m=Math.floor(countSec/60),s=countSec%60;
-        document.getElementById('countdown').textContent=`${m}:${String(s).padStart(2,'0')}`;
       },1000);
     }
 
