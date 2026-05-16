@@ -180,65 +180,29 @@
     function fmtDT(d){if(!d)return'';const y=d.getFullYear(),mo=String(d.getMonth()+1).padStart(2,'0'),da=String(d.getDate()).padStart(2,'0'),h=String(d.getHours()).padStart(2,'0'),mi=String(d.getMinutes()).padStart(2,'0');return`${y}-${mo}-${da} ${h}:${mi}`}
     function prettyName(c){return c.replace(/_/g,' ').replace(/\b\w/g,x=>x.toUpperCase()).replace('Mw','MW').replace('Hvdc','HVDC')}
 
-    /* ── Parse live HTML from CORS proxy ── */
-    function parseHTMLTable(html){
-      const doc=new DOMParser().parseFromString(html,'text/html');
-      const rows=[];
-      doc.querySelectorAll('table.table-bordered tbody tr').forEach(tr=>{
-        const tds=tr.querySelectorAll('td');
-        if(tds.length<13)return;
-        const dateStr=toEn(tds[0].textContent.trim());
-        const timeStr=toEn(tds[1].textContent.trim());
-        const dp=dateStr.split('-');if(dp.length!==3)return;
-        let day=+dp[0],month=+dp[1],year=+dp[2];
-        const tp=timeStr.split(':');let h=+tp[0],mi=+(tp[1]||0);
-        if(h===24){h=0;const nd=new Date(year,month-1,day+1);day=nd.getDate();month=nd.getMonth()+1;year=nd.getFullYear()}
-        const dt=new Date(year,month-1,day,h,mi);
-        const r={_date:dt,_ts:dt.getTime(),generation_mw:toNum(toEn(tds[2].textContent)),
-          gas:toNum(toEn(tds[3].textContent)),liquid_fuel:toNum(toEn(tds[4].textContent)),
-          coal:toNum(toEn(tds[5].textContent)),hydro:toNum(toEn(tds[6].textContent)),
-          solar:toNum(toEn(tds[7].textContent)),wind:toNum(toEn(tds[8].textContent)),
-          india_bheramara_hvdc:toNum(toEn(tds[9].textContent)),india_tripura:toNum(toEn(tds[10].textContent)),
-          india_adani:toNum(toEn(tds[11].textContent)),nepal:toNum(toEn(tds[12].textContent)),
-          remarks:tds.length>13?bnRemarks(tds[13].textContent):''};
-        rows.push(r);
-      });
-      return rows;
-    }
 
-    /* ── Load data (try CORS proxy, fallback to CSV) ── */
+    /* ── Load data (always use CSV with cache buster) ── */
     async function loadData(){
       document.getElementById('lastUpdate').textContent='Loading…';
       let rows=[];
-      // Try CORS proxies
-      const proxies=['https://corsproxy.io/?','https://api.allorigins.win/raw?url='];
-      const pgcbURL='https://erp.powergrid.gov.bd/w/generations/view_generations_bn?page=1';
-      let liveOK=false;
-      for(const px of proxies){
-        try{
-          const r=await fetch(px+encodeURIComponent(pgcbURL),{signal:AbortSignal.timeout(12000)});
-          if(r.ok){const html=await r.text();rows=parseHTMLTable(html);if(rows.length){liveOK=true;break}}
-        }catch(e){continue}
-      }
-      // Fallback: load pgcb_live_data.csv
-      if(!rows.length){
-        try{
-          const r=await fetch('pgcb_live_data.csv');
-          if(r.ok){const csv=await r.text();
-            Papa.parse(csv,{header:true,skipEmptyLines:true,complete:res=>{
-              rows=res.data.map(row=>{
-                const dt=parseCSVDate(row.datetime);if(!dt)return null;
-                const o={_date:dt,_ts:dt.getTime(),generation_mw:toNum(row.generation_mw),remarks:row.remarks||''};
-                srcCols.forEach(c=>o[c]=toNum(row[c]));return o;
-              }).filter(Boolean);
-            }});
-          }
-        }catch(e){}
-      }
+      try{
+        // Add timestamp parameter to prevent browser and CDN caching
+        const r=await fetch('pgcb_live_data.csv?t=' + Date.now());
+        if(r.ok){
+          const csv=await r.text();
+          Papa.parse(csv,{header:true,skipEmptyLines:true,complete:res=>{
+            rows=res.data.map(row=>{
+              const dt=parseCSVDate(row.datetime);if(!dt)return null;
+              const o={_date:dt,_ts:dt.getTime(),generation_mw:toNum(row.generation_mw),remarks:row.remarks||''};
+              srcCols.forEach(c=>o[c]=toNum(row[c]));return o;
+            }).filter(Boolean);
+          }});
+        }
+      }catch(e){console.error("Fetch error:", e)}
       // Update badge
       const badge=document.getElementById('liveBadge');
-      if(liveOK){badge.classList.remove('offline');badge.innerHTML='<span class="live-dot"></span>LIVE'}
-      else{badge.classList.add('offline');badge.innerHTML='<span class="live-dot"></span>CSV'}
+      if(rows.length>0){badge.classList.remove('offline');badge.innerHTML='<span class="live-dot"></span>LIVE'}
+      else{badge.classList.add('offline');badge.innerHTML='<span class="live-dot"></span>ERROR'}
 
       if(!rows.length){document.getElementById('heroValue').textContent='N/A';return}
       rows.sort((a,b)=>a._ts-b._ts);
