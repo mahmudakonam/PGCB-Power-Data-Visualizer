@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PGCB Live Generation Data</title>
+  <meta name="description" content="Live hourly power generation data from Bangladesh Power Grid (PGCB)" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root{--bg:#0b1120;--panel:#131b2e;--panel2:#1a2540;--text:#e2e8f0;--muted:#94a3b8;--border:#1e293b;--primary:#3b82f6;--primary-dark:#2563eb;--glow:rgba(59,130,246,.25);--good:#10b981;--warn:#f59e0b;--danger:#ef4444;--radius:16px;--radius-sm:10px;--shadow:0 4px 24px rgba(0,0,0,.3)}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+
+    /* Header */
+    header{background:linear-gradient(135deg,#0d1b3e 0%,#1a3a8f 60%,#1a56db 100%);color:white;padding:0 28px;height:64px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+    .header-icon{width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    header h1{font-size:18px;font-weight:700;letter-spacing:-0.02em;flex:1}
+    .nav-link{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#dbeafe;font-size:12px;font-weight:600;padding:6px 14px;border-radius:999px;text-decoration:none;transition:all .2s;cursor:pointer;white-space:nowrap}
+    .nav-link:hover{background:rgba(255,255,255,.25)}
+
+    /* Live indicator */
+    .live-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#6ee7b7;font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px}
+    .live-dot{width:8px;height:8px;background:#10b981;border-radius:50%;animation:pulse 2s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(16,185,129,.5)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(16,185,129,0)}}
+    .offline .live-dot{background:#ef4444;animation:none}
+    .offline{color:#fca5a5;border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.1)}
+
+    /* Main */
+    .container{max-width:1280px;margin:0 auto;padding:20px}
+
+    /* Hero */
+    .hero{text-align:center;padding:36px 20px 28px;background:linear-gradient(180deg,rgba(59,130,246,.08) 0%,transparent 100%);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:20px;position:relative;overflow:hidden}
+    .hero::before{content:'';position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:300px;height:300px;background:radial-gradient(circle,rgba(59,130,246,.12) 0%,transparent 70%);pointer-events:none}
+    .hero-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:6px}
+    .hero-value{font-size:56px;font-weight:800;letter-spacing:-0.04em;font-family:'DM Mono',monospace;background:linear-gradient(135deg,#60a5fa,#3b82f6,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1}
+    .hero-unit{font-size:18px;font-weight:600;color:var(--muted);margin-top:4px}
+    .hero-time{font-size:13px;color:var(--muted);margin-top:10px}
+    .hero-time strong{color:var(--text)}
+
+    /* Stats grid */
+    .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+    @media(max-width:900px){.stats-grid{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:600px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+    .stat{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;position:relative;overflow:hidden;transition:border-color .2s}
+    .stat:hover{border-color:rgba(59,130,246,.3)}
+    .stat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+    .stat.blue::before{background:#3b82f6}.stat.green::before{background:#10b981}.stat.orange::before{background:#f59e0b}.stat.red::before{background:#ef4444}.stat.purple::before{background:#8b5cf6}.stat.teal::before{background:#14b8a6}.stat.pink::before{background:#ec4899}.stat.indigo::before{background:#6366f1}.stat.amber::before{background:#f59e0b}.stat.cyan::before{background:#06b6d4}
+    .stat-icon{font-size:16px;margin-bottom:4px}
+    .stat-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+    .stat-val{font-size:22px;font-weight:800;letter-spacing:-0.03em;font-family:'DM Mono',monospace;margin-top:2px;color:var(--text)}
+    .stat-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+    /* Cards */
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px}
+    .card-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)}
+    .card-head h3{font-size:15px;font-weight:700;flex:1}
+    .card-head p{font-size:12px;color:var(--muted)}
+    .card-body{padding:16px 18px}
+
+    /* Charts */
+    canvas{width:100%!important;max-height:380px}
+
+    /* Table */
+    .table-wrap{overflow-x:auto;max-height:400px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+    table{border-collapse:collapse;width:100%;min-width:800px;font-size:13px}
+    th,td{border-bottom:1px solid var(--border);padding:8px 12px;text-align:left;white-space:nowrap}
+    th{background:var(--panel2);position:sticky;top:0;z-index:1;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+    tr:hover td{background:rgba(59,130,246,.04)}
+    td{color:var(--text);font-family:'DM Mono',monospace;font-size:12px}
+    td:first-child{font-family:inherit;font-size:13px}
+
+    /* Refresh bar */
+    .refresh-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:20px;font-size:13px}
+    .refresh-bar span{flex:1;color:var(--muted)}
+    .refresh-bar strong{color:var(--text)}
+    .refresh-btn{background:var(--primary);color:white;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+    .refresh-btn:hover{background:var(--primary-dark);transform:translateY(-1px)}
+
+    /* Two-col */
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+    @media(max-width:800px){.two-col{grid-template-columns:1fr}}
+
+    /* Status */
+    .status-msg{text-align:center;padding:40px 20px;color:var(--muted)}
+    .status-msg .icon{font-size:40px;opacity:.3;margin-bottom:8px}
+
+    /* Footer */
+    footer{text-align:center;padding:20px;color:var(--muted);font-size:12px;border-top:1px solid var(--border);margin-top:40px}
+    footer a{color:var(--primary);text-decoration:none}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-icon">📡</div>
+    <h1>PGCB Live Generation</h1>
+    <div class="live-badge" id="liveBadge"><span class="live-dot"></span>LIVE</div>
+    <a class="nav-link" href="index.html">📊 Historical Data</a>
+  </header>
+
+  <div class="container">
+    <!-- Refresh Bar -->
+    <div class="refresh-bar">
+      <span>⏱ Next refresh in <strong id="countdown">60:00</strong></span>
+      <span>Last update: <strong id="lastUpdate">—</strong></span>
+      <button class="refresh-btn" onclick="loadData()">🔄 Refresh Now</button>
+    </div>
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-label">Current Generation</div>
+      <div class="hero-value" id="heroValue">—</div>
+      <div class="hero-unit">Megawatts</div>
+      <div class="hero-time" id="heroTime">Loading latest data…</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat blue"><div class="stat-icon">🔥</div><div class="stat-label">Gas</div><div class="stat-val">—</div></div>
+      <div class="stat orange"><div class="stat-icon">🛢️</div><div class="stat-label">Liquid Fuel</div><div class="stat-val">—</div></div>
+      <div class="stat red"><div class="stat-icon">⛏️</div><div class="stat-label">Coal</div><div class="stat-val">—</div></div>
+      <div class="stat teal"><div class="stat-icon">💧</div><div class="stat-label">Hydro</div><div class="stat-val">—</div></div>
+      <div class="stat amber"><div class="stat-icon">☀️</div><div class="stat-label">Solar</div><div class="stat-val">—</div></div>
+      <div class="stat cyan"><div class="stat-icon">🌬️</div><div class="stat-label">Wind</div><div class="stat-val">—</div></div>
+      <div class="stat purple"><div class="stat-icon">🇮🇳</div><div class="stat-label">HVDC</div><div class="stat-val">—</div></div>
+      <div class="stat indigo"><div class="stat-icon">🔌</div><div class="stat-label">Tripura</div><div class="stat-val">—</div></div>
+      <div class="stat pink"><div class="stat-icon">⚡</div><div class="stat-label">Adani</div><div class="stat-val">—</div></div>
+      <div class="stat green"><div class="stat-icon">🇳🇵</div><div class="stat-label">Nepal</div><div class="stat-val">—</div></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-head"><h3>📈 Last 48 Hours</h3></div>
+        <div class="card-body"><canvas id="timeChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>🥧 Source Mix</h3></div>
+        <div class="card-body"><canvas id="mixChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+      <div class="card-head"><h3>🗂 Recent Readings</h3><p id="tableCount">—</p></div>
+      <div class="card-body"><div class="table-wrap" id="tableWrap">
+        <div class="status-msg"><div class="icon">📡</div><p>Loading live data…</p></div>
+      </div></div>
+    </div>
+  </div>
+
+  <footer>PGCB Power Data Visualizer · <a href="index.html">Historical View</a> · Data from <a href="https://erp.powergrid.gov.bd" target="_blank">erp.powergrid.gov.bd</a></footer>
+
+  <script>
+    /* ── Bengali conversion ── */
+    const BN='০১২৩৪৫৬৭৮৯';
+    function toEn(s){return s?String(s).replace(/[০-৯]/g,d=>BN.indexOf(d)):''}
+    function bnRemarks(t){t=(t||'').trim();if(t==='সন্ধ্যা পিক')return'Evening_Peak';if(t==='ডে পিক')return'Day_Peak';return toEn(t)}
+
+    /* ── Data ── */
+    let liveRows=[], timeChart=null, mixChart=null;
+    let refreshTimer=null, countSec=3600;
+
+    const srcCols=['gas','liquid_fuel','coal','hydro','solar','wind','india_bheramara_hvdc','india_tripura','india_adani','nepal'];
+    const srcLabels=['Gas','Liquid Fuel','Coal','Hydro','Solar','Wind','HVDC','Tripura','Adani','Nepal'];
+    const srcColors=['#3b82f6','#f59e0b','#ef4444','#14b8a6','#eab308','#06b6d4','#8b5cf6','#6366f1','#ec4899','#10b981'];
+
+    function toNum(v){if(!v&&v!==0)return null;const n=Number(String(v).replace(/,/g,'').trim());return Number.isFinite(n)?n:null}
+
+    function parseCSVDate(v){
+      if(!v)return null;
+      const t=String(v).trim();
+      let d=new Date(t);if(!isNaN(d))return d;
+      const m=t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+      if(m){let y=+m[3];if(y<100)y+=2000;return new Date(y,m[1]-1,+m[2],+(m[4]||0),+(m[5]||0))}
+      return null;
+    }
+
+    function fmtDT(d){if(!d)return'';const y=d.getFullYear(),mo=String(d.getMonth()+1).padStart(2,'0'),da=String(d.getDate()).padStart(2,'0'),h=String(d.getHours()).padStart(2,'0'),mi=String(d.getMinutes()).padStart(2,'0');return`${y}-${mo}-${da} ${h}:${mi}`}
+    function prettyName(c){return c.replace(/_/g,' ').replace(/\b\w/g,x=>x.toUpperCase()).replace('Mw','MW').replace('Hvdc','HVDC')}
+
+    /* ── Parse live HTML from CORS proxy ── */
+    function parseHTMLTable(html){
+      const doc=new DOMParser().parseFromString(html,'text/html');
+      const rows=[];
+      doc.querySelectorAll('table.table-bordered tbody tr').forEach(tr=>{
+        const tds=tr.querySelectorAll('td');
+        if(tds.length<13)return;
+        const dateStr=toEn(tds[0].textContent.trim());
+        const timeStr=toEn(tds[1].textContent.trim());
+        const dp=dateStr.split('-');if(dp.length!==3)return;
+        let day=+dp[0],month=+dp[1],year=+dp[2];
+        const tp=timeStr.split(':');let h=+tp[0],mi=+(tp[1]||0);
+        if(h===24){h=0;const nd=new Date(year,month-1,day+1);day=nd.getDate();month=nd.getMonth()+1;year=nd.getFullYear()}
+        const dt=new Date(year,month-1,day,h,mi);
+        const r={_date:dt,_ts:dt.getTime(),generation_mw:toNum(toEn(tds[2].textContent)),
+          gas:toNum(toEn(tds[3].textContent)),liquid_fuel:toNum(toEn(tds[4].textContent)),
+          coal:toNum(toEn(tds[5].textContent)),hydro:toNum(toEn(tds[6].textContent)),
+          solar:toNum(toEn(tds[7].textContent)),wind:toNum(toEn(tds[8].textContent)),
+          india_bheramara_hvdc:toNum(toEn(tds[9].textContent)),india_tripura:toNum(toEn(tds[10].textContent)),
+          india_adani:toNum(toEn(tds[11].textContent)),nepal:toNum(toEn(tds[12].textContent)),
+          remarks:tds.length>13?bnRemarks(tds[13].textContent):''};
+        rows.push(r);
+      });
+      return rows;
+    }
+
+    /* ── Load data (try CORS proxy, fallback to CSV) ── */
+    async function loadData(){
+      document.getElementById('lastUpdate').textContent='Loading…';
+      let rows=[];
+      // Try CORS proxies
+      const proxies=['https://corsproxy.io/?','https://api.allorigins.win/raw?url='];
+      const pgcbURL='https://erp.powergrid.gov.bd/w/generations/view_generations_bn?page=1';
+      let liveOK=false;
+      for(const px of proxies){
+        try{
+          const r=await fetch(px+encodeURIComponent(pgcbURL),{signal:AbortSignal.timeout(12000)});
+          if(r.ok){const html=await r.text();rows=parseHTMLTable(html);if(rows.length){liveOK=true;break}}
+        }catch(e){continue}
+      }
+      // Fallback: load pgcb_live_data.csv
+      if(!rows.length){
+        try{
+          const r=await fetch('pgcb_live_data.csv');
+          if(r.ok){const csv=await r.text();
+            Papa.parse(csv,{header:true,skipEmptyLines:true,complete:res=>{
+              rows=res.data.map(row=>{
+                const dt=parseCSVDate(row.datetime);if(!dt)return null;
+                const o={_date:dt,_ts:dt.getTime(),generation_mw:toNum(row.generation_mw),remarks:row.remarks||''};
+                srcCols.forEach(c=>o[c]=toNum(row[c]));return o;
+              }).filter(Boolean);
+            }});
+          }
+        }catch(e){}
+      }
+      // Update badge
+      const badge=document.getElementById('liveBadge');
+      if(liveOK){badge.classList.remove('offline');badge.innerHTML='<span class="live-dot"></span>LIVE'}
+      else{badge.classList.add('offline');badge.innerHTML='<span class="live-dot"></span>CSV'}
+
+      if(!rows.length){document.getElementById('heroValue').textContent='N/A';return}
+      rows.sort((a,b)=>a._ts-b._ts);
+      liveRows=rows;
+      updateUI();
+      document.getElementById('lastUpdate').textContent=new Date().toLocaleTimeString();
+      resetCountdown();
+    }
+
+    /* ── Update UI ── */
+    function updateUI(){
+      if(!liveRows.length)return;
+      const latest=liveRows[liveRows.length-1];
+
+      // Hero
+      document.getElementById('heroValue').textContent=latest.generation_mw!=null?Number(latest.generation_mw).toLocaleString():'—';
+      document.getElementById('heroTime').innerHTML=`As of <strong>${fmtDT(latest._date)}</strong>`;
+
+      // Stats
+      const statEls=document.querySelectorAll('#statsGrid .stat');
+      const vals=[latest.gas,latest.liquid_fuel,latest.coal,latest.hydro,latest.solar,latest.wind,latest.india_bheramara_hvdc,latest.india_tripura,latest.india_adani,latest.nepal];
+      vals.forEach((v,i)=>{if(statEls[i]){const el=statEls[i].querySelector('.stat-val');el.textContent=v!=null?Number(v).toLocaleString():'—'}});
+
+      // Charts
+      renderTimeChart();
+      renderMixChart(latest);
+      renderTable();
+    }
+
+    function renderTimeChart(){
+      const data=liveRows.slice(-48);
+      const labels=data.map(r=>fmtDT(r._date).slice(5));
+      if(timeChart)timeChart.destroy();
+      timeChart=new Chart(document.getElementById('timeChart'),{
+        type:'line',
+        data:{labels,datasets:[{label:'Generation MW',data:data.map(r=>r.generation_mw),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',borderWidth:2,tension:.3,pointRadius:data.length>30?0:3,fill:true}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}}},
+          scales:{x:{ticks:{color:'#64748b',maxTicksLimit:10,font:{size:10}},grid:{color:'#1e293b'}},y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#1e293b'},title:{display:true,text:'MW',color:'#94a3b8'}}}}
+      });
+    }
+
+    function renderMixChart(latest){
+      const labels=[],vals=[],colors=[];
+      srcCols.forEach((c,i)=>{const v=latest[c];if(v!=null&&v>0){labels.push(srcLabels[i]);vals.push(v);colors.push(srcColors[i])}});
+      if(mixChart)mixChart.destroy();
+      mixChart=new Chart(document.getElementById('mixChart'),{
+        type:'doughnut',
+        data:{labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:'#131b2e'}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',boxWidth:12,padding:8,font:{size:11}}},
+          tooltip:{callbacks:{label:ctx=>{const tot=vals.reduce((a,b)=>a+b,0);return`${ctx.label}: ${ctx.parsed} MW (${(ctx.parsed/tot*100).toFixed(1)}%)`}}}}}
+      });
+    }
+
+    function renderTable(){
+      const cols=['datetime','generation_mw',...srcCols,'remarks'];
+      const rows=liveRows.slice().reverse().slice(0,100);
+      document.getElementById('tableCount').textContent=`${rows.length} of ${liveRows.length} readings`;
+      const hdr=cols.map(c=>`<th>${prettyName(c)}</th>`).join('');
+      const body=rows.map(r=>'<tr>'+cols.map(c=>{
+        const v=c==='datetime'?fmtDT(r._date):(r[c]??'');
+        return`<td>${String(v)}</td>`}).join('')+'</tr>').join('');
+      document.getElementById('tableWrap').innerHTML=`<table><thead><tr>${hdr}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    /* ── Countdown ── */
+    function resetCountdown(){countSec=3600;if(refreshTimer)clearInterval(refreshTimer);
+      refreshTimer=setInterval(()=>{countSec--;if(countSec<=0){loadData();return}
+        const m=Math.floor(countSec/60),s=countSec%60;
+        document.getElementById('countdown').textContent=`${m}:${String(s).padStart(2,'0')}`;
+      },1000);
+    }
+
+    /* ── Init ── */
+    loadData();
+  </script>
+</body>
+</html>

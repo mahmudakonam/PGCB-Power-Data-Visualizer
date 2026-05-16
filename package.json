@@ -1,0 +1,15 @@
+{
+  "name": "pgcb-scraper",
+  "version": "1.0.0",
+  "description": "PGCB Power Generation Data Scraper — scrapes live hourly data from erp.powergrid.gov.bd",
+  "main": "scrape_pgcb.js",
+  "scripts": {
+    "scrape": "node scrape_pgcb.js",
+    "scrape:all": "node scrape_pgcb.js --all",
+    "scrape:pages": "node scrape_pgcb.js --pages 5"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "node-fetch": "^2.7.0"
+  }
+}
