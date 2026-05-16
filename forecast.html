@@ -139,6 +139,10 @@
     <div class="page-title">
       <h2>Advanced Machine Learning Forecast</h2>
       <p id="forecastTimestamp">Loading latest prediction model...</p>
+      <div style="margin-top: 16px;">
+        <label for="datePicker" style="margin-right: 8px; color: #94a3b8; font-size: 14px;">Select Date:</label>
+        <input type="date" id="datePicker" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #f8fafc; font-family: inherit; font-size: 14px;" onchange="handleDateChange()">
+      </div>
     </div>
 
     <!-- DEMAND FORECAST -->
@@ -180,7 +184,12 @@
   </footer>
 
   <script>
-    const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mahmudakonam/PGCB-ML-Forecast/main/forecast.json';
+    const API_BASE_URL = 'http://127.0.0.1:10000'; // Change to your Render URL in production!
+
+    function handleDateChange() {
+      const date = document.getElementById('datePicker').value;
+      if (date) loadForecastData(date);
+    }
 
     // Beautiful palette for generation sources
     const mixColors = {
@@ -200,10 +209,16 @@
       return key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     }
 
-    async function loadForecastData() {
+    async function loadForecastData(dateStr) {
+      if (!dateStr) {
+        const d = new Date();
+        dateStr = d.toISOString().split('T')[0];
+        document.getElementById('datePicker').value = dateStr;
+      }
       try {
-        const response = await fetch(GITHUB_RAW_URL, { cache: 'no-store' });
-        if (!response.ok) throw new Error('Forecast file not found on GitHub');
+        document.getElementById('forecastTimestamp').textContent = `Fetching AI prediction for ${dateStr}...`;
+        const response = await fetch(`${API_BASE_URL}/predict?date=${dateStr}`, { cache: 'no-store' });
+        if (!response.ok) throw new Error('API failed or is offline');
         
         const data = await response.json();
         
@@ -211,7 +226,7 @@
           throw new Error('Forecast array is empty');
         }
 
-        document.getElementById('forecastTimestamp').textContent = `Model last run at: ${data.generated_at} (UTC)`;
+        document.getElementById('forecastTimestamp').textContent = `Target Date: ${data.target_date} | Generated at: ${data.generated_at} (UTC)`;
         
         renderDemandChart(data.forecast);
         renderMixChart(data.forecast);
@@ -233,37 +248,53 @@
          const d = new Date(f.datetime);
          return d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
       });
-      const demandData = forecast.map(f => f.demand_mw_forecast);
+      const actualData = forecast.map(f => f.actual_demand_mw);
+      const predictedData = forecast.map(f => f.predicted_demand_mw);
 
       const ctx = canvas.getContext('2d');
       const gradient = ctx.createLinearGradient(0, 0, 0, 350);
       gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)'); // Blue top
       gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)'); // Transparent bottom
 
-      new Chart(ctx, {
+      if (window.demandChartInstance) window.demandChartInstance.destroy();
+
+      window.demandChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
           labels,
-          datasets: [{
-            label: 'Predicted Total Demand (MW)',
-            data: demandData,
-            borderColor: '#3b82f6',
-            backgroundColor: gradient,
-            borderWidth: 3,
-            tension: 0.4, // Smooth curves
-            fill: true,
-            pointBackgroundColor: '#fff',
-            pointBorderColor: '#3b82f6',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6
-          }]
+          datasets: [
+            {
+              label: 'Actual Demand (MW)',
+              data: actualData,
+              borderColor: '#10b981', // Emerald green
+              backgroundColor: 'transparent',
+              borderWidth: 3,
+              borderDash: [5, 5],
+              tension: 0.4,
+              pointBackgroundColor: '#10b981',
+              pointRadius: 3
+            },
+            {
+              label: 'Predicted Demand (MW)',
+              data: predictedData,
+              borderColor: '#3b82f6',
+              backgroundColor: gradient,
+              borderWidth: 3,
+              tension: 0.4,
+              fill: true,
+              pointBackgroundColor: '#fff',
+              pointBorderColor: '#3b82f6',
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }
+          ]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { display: false },
+            legend: { position: 'top', labels: { color: '#cbd5e1' } },
             tooltip: {
               backgroundColor: 'rgba(15, 23, 42, 0.9)',
               titleColor: '#fff', bodyColor: '#93c5fd',
@@ -308,7 +339,9 @@
         };
       });
 
-      new Chart(canvas.getContext('2d'), {
+      if (window.mixChartInstance) window.mixChartInstance.destroy();
+
+      window.mixChartInstance = new Chart(canvas.getContext('2d'), {
         type: 'line', // We use line chart with fill: true for a stacked area chart effect
         data: { labels, datasets },
         options: {
