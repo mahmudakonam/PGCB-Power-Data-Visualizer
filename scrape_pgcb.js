@@ -387,19 +387,24 @@ async function main() {
 function saveRows(rows, isNewFile) {
   if (rows.length === 0) return;
 
-  // Sort rows chronologically
-  rows.sort((a, b) => datetimeToTimestamp(a.datetime) - datetimeToTimestamp(b.datetime));
+  // Sort rows descending (newest at the top)
+  rows.sort((a, b) => datetimeToTimestamp(b.datetime) - datetimeToTimestamp(a.datetime));
 
-  const csvLines = rows.map(rowToCSV);
+  const newCsvLines = rows.map(rowToCSV);
 
   if (isNewFile || !fs.existsSync(OUTPUT_FILE)) {
     // Create new file with header
-    const content = CSV_HEADER + '\n' + csvLines.join('\n') + '\n';
+    const content = CSV_HEADER + '\n' + newCsvLines.join('\n') + '\n';
     fs.writeFileSync(OUTPUT_FILE, content, 'utf8');
   } else {
-    // Append to existing file
-    const content = '\n' + csvLines.join('\n');
-    fs.appendFileSync(OUTPUT_FILE, content, 'utf8');
+    // Read existing file to insert new rows at the top (after header)
+    const existingContent = fs.readFileSync(OUTPUT_FILE, 'utf8');
+    const existingLines = existingContent.split('\n').filter(Boolean);
+    const header = existingLines.shift() || CSV_HEADER;
+    
+    // Combine: header + new lines + existing lines
+    const finalContent = header + '\n' + newCsvLines.join('\n') + '\n' + existingLines.join('\n') + '\n';
+    fs.writeFileSync(OUTPUT_FILE, finalContent, 'utf8');
   }
 }
 
