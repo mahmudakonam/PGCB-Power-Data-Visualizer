@@ -51,17 +51,21 @@
     /* Main */
     .container{max-width:1280px;margin:0 auto;padding:20px}
 
+    /* Top Layout */
+    .top-layout { display: grid; grid-template-columns: 340px 1fr; gap: 16px; margin-bottom: 16px; align-items: stretch; }
+    @media (max-width: 900px) { .top-layout { grid-template-columns: 1fr; } }
+
     /* Hero */
-    .hero{text-align:center;padding:24px 20px 20px;background:linear-gradient(180deg,rgba(59,130,246,.05) 0%,transparent 100%);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:16px;position:relative;overflow:hidden}
+    .hero{text-align:center;padding:24px 20px;background:linear-gradient(180deg,rgba(59,130,246,.05) 0%,transparent 100%);border-radius:var(--radius);border:1px solid var(--border);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;height:100%}
     .hero::before{content:'';position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:300px;height:300px;background:radial-gradient(circle,rgba(59,130,246,.10) 0%,transparent 70%);pointer-events:none}
     .hero-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:6px}
-    .hero-value{font-size:56px;font-weight:800;letter-spacing:-0.04em;font-family:'DM Mono',monospace;background:linear-gradient(135deg,#60a5fa,#3b82f6,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1}
-    .hero-unit{font-size:18px;font-weight:600;color:var(--muted);margin-top:4px}
-    .hero-time{font-size:13px;color:var(--muted);margin-top:10px}
+    .hero-value{font-size:48px;font-weight:800;letter-spacing:-0.04em;font-family:'DM Mono',monospace;background:linear-gradient(135deg,#60a5fa,#3b82f6,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1}
+    .hero-unit{font-size:16px;font-weight:600;color:var(--muted);margin-top:4px}
+    .hero-time{font-size:12px;color:var(--muted);margin-top:10px}
     .hero-time strong{color:var(--text)}
 
     /* Stats grid */
-    .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+    .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
     @media(max-width:900px){.stats-grid{grid-template-columns:repeat(3,1fr)}}
     @media(max-width:600px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
     .stat{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;position:relative;overflow:hidden;transition:border-color .2s}
@@ -116,26 +120,28 @@
 
   <div class="container">
 
-    <!-- Hero -->
-    <div class="hero">
-      <div class="hero-label">Current Generation</div>
-      <div class="hero-value" id="heroValue">—</div>
-      <div class="hero-unit">Megawatts</div>
-      <div class="hero-time" id="heroTime">Loading latest data…</div>
-    </div>
+    <div class="top-layout">
+      <!-- Hero -->
+      <div class="hero">
+        <div class="hero-label">Current Generation</div>
+        <div class="hero-value" id="heroValue">—</div>
+        <div class="hero-unit">Megawatts</div>
+        <div class="hero-time" id="heroTime">Loading latest data…</div>
+      </div>
 
-    <!-- Stats -->
-    <div class="stats-grid" id="statsGrid">
-      <div class="stat blue"><div class="stat-icon">🔥</div><div class="stat-label">Gas</div><div class="stat-val">—</div></div>
-      <div class="stat orange"><div class="stat-icon">🛢️</div><div class="stat-label">Liquid Fuel</div><div class="stat-val">—</div></div>
-      <div class="stat red"><div class="stat-icon">⛏️</div><div class="stat-label">Coal</div><div class="stat-val">—</div></div>
-      <div class="stat teal"><div class="stat-icon">💧</div><div class="stat-label">Hydro</div><div class="stat-val">—</div></div>
-      <div class="stat amber"><div class="stat-icon">☀️</div><div class="stat-label">Solar</div><div class="stat-val">—</div></div>
-      <div class="stat cyan"><div class="stat-icon">🌬️</div><div class="stat-label">Wind</div><div class="stat-val">—</div></div>
-      <div class="stat purple"><div class="stat-icon">🇮🇳</div><div class="stat-label">HVDC</div><div class="stat-val">—</div></div>
-      <div class="stat indigo"><div class="stat-icon">🔌</div><div class="stat-label">Tripura</div><div class="stat-val">—</div></div>
-      <div class="stat pink"><div class="stat-icon">⚡</div><div class="stat-label">Adani</div><div class="stat-val">—</div></div>
-      <div class="stat green"><div class="stat-icon">🇳🇵</div><div class="stat-label">Nepal</div><div class="stat-val">—</div></div>
+      <!-- Stats -->
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat blue"><div class="stat-icon">🔥</div><div class="stat-label">Gas</div><div class="stat-val">—</div></div>
+        <div class="stat orange"><div class="stat-icon">🛢️</div><div class="stat-label">Liquid Fuel</div><div class="stat-val">—</div></div>
+        <div class="stat red"><div class="stat-icon">⛏️</div><div class="stat-label">Coal</div><div class="stat-val">—</div></div>
+        <div class="stat teal"><div class="stat-icon">💧</div><div class="stat-label">Hydro</div><div class="stat-val">—</div></div>
+        <div class="stat amber"><div class="stat-icon">☀️</div><div class="stat-label">Solar</div><div class="stat-val">—</div></div>
+        <div class="stat cyan"><div class="stat-icon">🌬️</div><div class="stat-label">Wind</div><div class="stat-val">—</div></div>
+        <div class="stat purple"><div class="stat-icon">🇮🇳</div><div class="stat-label">HVDC</div><div class="stat-val">—</div></div>
+        <div class="stat indigo"><div class="stat-icon">🔌</div><div class="stat-label">Tripura</div><div class="stat-val">—</div></div>
+        <div class="stat pink"><div class="stat-icon">⚡</div><div class="stat-label">Adani</div><div class="stat-val">—</div></div>
+        <div class="stat green"><div class="stat-icon">🇳🇵</div><div class="stat-label">Nepal</div><div class="stat-val">—</div></div>
+      </div>
     </div>
 
     <!-- Charts -->
