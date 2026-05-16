@@ -12,24 +12,24 @@
 
   <style>
     :root {
-      --bg: #0b1120;
-      --panel: #131b2e;
-      --panel2: #1a2540;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --border: #1e293b;
-      --primary: #3b82f6;
-      --primary-dark: #2563eb;
-      --primary-light: rgba(59, 130, 246, 0.15);
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --panel2: #f1f5f9;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #eff6ff;
       --danger: #ef4444;
-      --danger-light: rgba(239, 68, 68, 0.15);
+      --danger-light: #fef2f2;
       --good: #10b981;
-      --good-light: rgba(16, 185, 129, 0.15);
+      --good-light: #ecfdf5;
       --warn: #f59e0b;
-      --warn-light: rgba(245, 158, 11, 0.15);
-      --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
-      --shadow: 0 4px 16px rgba(0,0,0,.4);
-      --shadow-lg: 0 8px 32px rgba(0,0,0,.5);
+      --warn-light: #fffbeb;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+      --shadow: 0 4px 12px rgba(0,0,0,.05);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,.08);
       --radius: 12px;
       --radius-sm: 8px;
       --sidebar-w: 320px;
@@ -48,8 +48,8 @@
 
     /* ── HEADER ── */
     header {
-      background: #0b1120;
-      border-bottom: 1px solid var(--border);
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
       color: white;
       padding: 0 24px;
       height: var(--header-h);
@@ -105,7 +105,7 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
-      background: var(--panel);
+      background: var(--bg);
       border-right: 1px solid var(--border);
       min-height: calc(100vh - var(--header-h));
     }
@@ -131,10 +131,9 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 12px 16px;
+      padding: 14px 16px 0;
       cursor: pointer;
       user-select: none;
-      border-bottom: 1px solid var(--border);
     }
 
     .card-header h2 {
@@ -146,7 +145,7 @@
       flex: 1;
     }
 
-    .card-body { padding: 16px; }
+    .card-body { padding: 14px 16px 16px; }
 
     .collapse-icon {
       font-size: 11px;
@@ -205,23 +204,25 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 8px;
-      background: var(--panel2);
+      padding: 6px 10px;
+      background: var(--bg);
       border-radius: var(--radius-sm);
       font-size: 12px;
       color: var(--text);
       text-decoration: none;
       transition: all .15s;
       font-weight: 500;
+      border: 1px solid var(--border);
     }
 
     .profile-link:hover {
-      background: var(--primary);
-      color: white;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      border-color: var(--primary-light);
     }
 
     .profile-link .link-icon {
-      width: 20px; height: 20px;
+      width: 22px; height: 22px;
       border-radius: 6px;
       display: flex;
       align-items: center;
@@ -295,7 +296,7 @@
       padding: 8px 10px;
       font-size: 13px;
       font-family: inherit;
-      background: var(--panel2);
+      background: white;
       color: var(--text);
       outline: none;
       transition: border-color .15s, box-shadow .15s;
@@ -347,7 +348,7 @@
       border: 1px solid var(--border);
       padding: 8px;
       border-radius: var(--radius-sm);
-      background: var(--panel2);
+      background: #f8fafc;
       scrollbar-width: thin;
     }
 
@@ -367,7 +368,7 @@
       transition: background .12s;
     }
 
-    .checkbox-list label:hover { background: var(--bg); }
+    .checkbox-list label:hover { background: #e2e8f0; }
 
     input[type="checkbox"] {
       accent-color: var(--primary);
@@ -403,8 +404,8 @@
     .btn-danger { background: var(--danger-light); color: var(--danger); border: 1px solid #fecaca; }
     .btn-danger:hover { background: #fecaca; }
 
-    .btn-secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
-    .btn-secondary:hover { background: var(--border); }
+    .btn-secondary { background: white; color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: #f8fafc; }
 
     .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
     .btn-ghost:hover { background: #f1f5f9; color: var(--text); }
@@ -619,6 +620,18 @@
     /* High load shedding */
     td.high-shed { color: var(--danger); font-weight: 600; }
     td.peak-gen { color: var(--good); font-weight: 600; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: var(--muted);
+      font-size: 12px;
+      border-top: 1px solid var(--border);
+      background: var(--bg);
+    }
+    footer a { color: var(--primary); text-decoration: none; font-weight: 600; }
+    footer a:hover { text-decoration: underline; }
 
     /* ── TOAST ── */
     #toastContainer {
@@ -1024,9 +1037,6 @@
     </div>
   </div>
 
-  <!-- TOAST CONTAINER -->
-  <div id="toastContainer"></div>
-
   <div class="app-body">
 
     <!-- SIDEBAR -->
@@ -1334,6 +1344,10 @@
 
     </main>
   </div>
+
+  <footer>
+    PGCB Power Data Visualizer - By <a href="https://www.linkedin.com/in/mahmudakon/" target="_blank">Md Mahmud Akon</a> | Data from <a href="https://erp.powergrid.gov.bd/w/generations/view_generations" target="_blank">Power Grid Bangladesh PLC</a>
+  </footer>
 
   <!-- ── SCRIPTS ── -->
   <script>
