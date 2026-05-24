@@ -756,7 +756,7 @@
     }
 
     function formatTimeOnly(dtStr) {
-      const d = new Date(dtStr);
+      const d = new Date(dtStr.replace(' ', 'T'));
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
