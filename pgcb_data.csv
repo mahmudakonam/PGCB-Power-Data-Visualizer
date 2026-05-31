@@ -1,4 +1,5 @@
 datetime,generation_mw,demand_mw,load_shedding,gas,liquid_fuel,coal,hydro,solar,wind,india_bheramara_hvdc,india_tripura,india_adani,nepal,remarks
+5/31/26 13:00,12276,,,7157,164,3021,70,557,0,931,152,478,0,
 5/31/26 12:00,11712,,,6735,201,2651,70,564,0,931,138,422,0,Day_Peak
 5/31/26 11:00,11222,,,6220,201,2640,70,607,0,931,136,417,0,
 5/31/26 10:00,11103,,,6044,280,2697,70,534,0,932,130,416,0,
