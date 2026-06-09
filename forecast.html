@@ -11,19 +11,19 @@
 
   <style>
     :root {
-      --bg: #0b0f19; /* Deep Space Dark */
-      --panel: #131a2b; /* Sleek Glass Dark */
-      --panel-hover: #1c263e;
-      --border: rgba(255, 255, 255, 0.08);
-      --text: #f1f5f9;
-      --muted: #64748b;
+      --bg: #f8fafc; /* Sleek light slate */
+      --panel: #ffffff; /* Pure white panel */
+      --panel-hover: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a; /* Slate 900 */
+      --muted: #64748b; /* Slate 500 */
       
       --primary: #3b82f6; /* XGBoost Blue */
       --secondary: #a855f7; /* Random Forest Purple */
       --accent: #10b981; /* Actual/Ensemble Green */
       --amber: #f59e0b; /* Baseline Orange */
       
-      --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.25);
+      --shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02);
       --radius: 16px;
       --radius-sm: 10px;
       --sidebar-w: 320px;
@@ -45,8 +45,8 @@
 
     /* ── HEADER ── */
     header {
-      background: #080b13;
-      border-bottom: 1px solid var(--border);
+      background: #0f172a; /* Keep dark header to match index.html and live.html */
+      border-bottom: 1px solid #1e293b;
       padding: 0 24px;
       height: var(--header-h);
       display: flex;
@@ -55,16 +55,17 @@
       position: sticky;
       top: 0;
       z-index: 100;
+      color: white;
     }
 
     .header-icon {
       width: 36px; height: 36px;
-      background: rgba(59, 130, 246, 0.15);
-      border: 1px solid rgba(59, 130, 246, 0.3);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
       font-size: 18px;
-      color: #60a5fa;
+      color: white;
     }
 
     header h1 {
@@ -72,14 +73,14 @@
       font-weight: 700;
       letter-spacing: -0.02em;
       flex: 1;
-      background: linear-gradient(135deg, #f8fafc, #94a3b8);
+      background: linear-gradient(135deg, #ffffff, #cbd5e1);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
-    .nav-link {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+    .header-nav-link {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       color: #cbd5e1;
       font-size: 12px;
       font-weight: 600;
@@ -91,14 +92,14 @@
       white-space: nowrap;
     }
 
-    .nav-link:hover {
-      background: rgba(255, 255, 255, 0.12);
+    .header-nav-link:hover {
+      background: rgba(255, 255, 255, 0.18);
       color: white;
     }
 
-    .nav-link.active {
-      background: rgba(59, 130, 246, 0.15);
-      border-color: rgba(59, 130, 246, 0.3);
+    .header-nav-link.active {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.45);
       color: #93c5fd;
     }
 
@@ -120,7 +121,7 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
-      background: #090d16;
+      background: #ffffff;
       border-right: 1px solid var(--border);
       min-height: calc(100vh - var(--header-h));
     }
@@ -171,11 +172,12 @@
     @media (max-width: 600px) { .kpi-grid { grid-template-columns: 1fr; } }
 
     .kpi-card {
-      background: linear-gradient(145deg, #131a2b 0%, #0d121f 100%);
+      background: #ffffff;
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 14px;
       position: relative;
+      box-shadow: var(--shadow-lg);
     }
 
     .kpi-card::before {
@@ -204,7 +206,7 @@
       font-weight: 800;
       letter-spacing: -0.02em;
       font-family: 'DM Mono', monospace;
-      color: #f8fafc;
+      color: var(--text);
       margin-top: 4px;
     }
 
@@ -214,47 +216,111 @@
       margin-top: 2px;
     }
 
-    /* ── DATE NAVIGATION ── */
-    .date-nav {
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      gap: 6px;
+    /* ── DATE SELECTOR UI ── */
+    .date-selector-group {
+      display: flex;
       align-items: center;
-      margin-bottom: 10px;
+      gap: 8px;
+      margin-bottom: 8px;
     }
 
-    .nav-btn {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: var(--radius-sm);
-      width: 36px; height: 36px;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer;
-      transition: all .15s;
+    .datepicker-wrapper {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
     }
-    .nav-btn:hover {
-      background: var(--panel-hover);
-      border-color: rgba(255,255,255,.15);
+
+    .calendar-icon {
+      position: absolute;
+      left: 12px;
+      font-size: 14px;
+      pointer-events: none;
+      opacity: 0.6;
     }
 
     .datepicker-input {
       width: 100%;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
-      padding: 8px 10px;
+      padding: 9px 10px 9px 36px;
       font-size: 13px;
+      font-weight: 700;
       font-family: inherit;
-      background: #080b13;
-      color: white;
+      background: #ffffff;
+      color: var(--text);
       outline: none;
       transition: all .15s;
-      text-align: center;
+      cursor: pointer;
     }
 
     .datepicker-input:focus {
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .nav-btn {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: var(--radius-sm);
+      width: 38px; height: 38px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all .15s;
+    }
+
+    .nav-btn:hover {
+      background: var(--panel-hover);
+      border-color: #cbd5e1;
+      transform: translateY(-1px);
+    }
+
+    .nav-btn:active {
+      transform: translateY(0);
+    }
+
+    .formatted-date-label {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: 4px;
+      margin-bottom: 12px;
+      min-height: 16px;
+      letter-spacing: -0.01em;
+    }
+
+    .preset-group {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .preset-btn {
+      text-align: center;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 7px 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .preset-btn:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .preset-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
     }
 
     /* ── MODEL SELECTIONS ── */
@@ -269,7 +335,7 @@
       align-items: center;
       gap: 10px;
       padding: 10px 12px;
-      background: rgba(255,255,255,0.02);
+      background: #f8fafc;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       cursor: pointer;
@@ -277,7 +343,7 @@
     }
 
     .model-item:hover {
-      background: rgba(255,255,255,0.06);
+      background: var(--panel-hover);
     }
 
     .model-item input[type="checkbox"] {
@@ -354,7 +420,7 @@
 
     .chart-empty .spinner {
       width: 32px; height: 32px;
-      border: 3px solid rgba(255, 255, 255, 0.1);
+      border: 3px solid rgba(0, 0, 0, 0.05);
       border-top-color: var(--primary);
       border-radius: 50%;
       animation: spin 1s linear infinite;
@@ -386,7 +452,7 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--muted);
-      background: rgba(255,255,255,0.02);
+      background: #f8fafc;
     }
 
     td { font-family: 'DM Mono', monospace; font-size: 11px; }
@@ -399,13 +465,13 @@
       border-radius: 4px;
       font-size: 9px;
       font-weight: 700;
-      background: rgba(255,255,255,0.08);
+      background: rgba(0, 0, 0, 0.05);
       color: var(--text);
     }
     .badge.best {
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.1);
+      color: #059669;
+      border: 1px solid rgba(16, 185, 129, 0.2);
     }
 
     /* Footer */
@@ -415,7 +481,7 @@
       color: var(--muted);
       font-size: 12px;
       border-top: 1px solid var(--border);
-      background: #080b13;
+      background: #ffffff;
     }
     footer a { color: var(--primary); text-decoration: none; font-weight: 600; }
     footer a:hover { text-decoration: underline; }
@@ -423,8 +489,8 @@
     /* Custom scrollbar */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.1); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.2); }
   </style>
 </head>
 <body>
@@ -433,9 +499,9 @@
   <header>
     <div class="header-icon">⚡</div>
     <h1>PGCB Power Forecast Platform</h1>
-    <a href="index.html" class="nav-link">📊 Historical Dashboard</a>
-    <a href="live.html" class="nav-link">📡 Live Monitoring</a>
-    <a href="forecast.html" class="nav-link active">🤖 AI Forecast</a>
+    <a href="index.html" class="header-nav-link">📊 Historical Dashboard</a>
+    <a href="live.html" class="header-nav-link">📡 Live Monitoring</a>
+    <a href="forecast.html" class="header-nav-link active">🤖 AI Forecast</a>
   </header>
 
   <div class="app-body">
@@ -446,18 +512,22 @@
       <!-- 1. DATE PICKER -->
       <div class="card">
         <div class="card-header">
-          <span>📅</span>
+          <span style="font-size: 16px;">📅</span>
           <h2>Target Timeline</h2>
         </div>
-        <div class="date-nav">
+        <div class="date-selector-group">
           <button class="nav-btn" onclick="adjustDate(-1)" title="Previous Day">◀</button>
-          <input type="date" id="datePicker" class="datepicker-input" onchange="handleDateChange()">
+          <div class="datepicker-wrapper">
+            <span class="calendar-icon">📅</span>
+            <input type="date" id="datePicker" class="datepicker-input" onchange="handleDateChange()">
+          </div>
           <button class="nav-btn" onclick="adjustDate(1)" title="Next Day">▶</button>
         </div>
-        <div style="display:flex; justify-content:center; gap:6px; margin-top:6px;">
-          <button class="nav-link" onclick="setDatePreset('yesterday')" style="font-size:10px; padding:4px 8px;">◀ Past (Actuals)</button>
-          <button class="nav-link" onclick="setDatePreset('today')" style="font-size:10px; padding:4px 8px;">● Live Today</button>
-          <button class="nav-link" onclick="setDatePreset('tomorrow')" style="font-size:10px; padding:4px 8px;">Next Day ▶</button>
+        <div id="formattedDateDisplay" class="formatted-date-label"></div>
+        <div class="preset-group">
+          <button id="presetYesterday" class="preset-btn" onclick="setDatePreset('yesterday')">Yesterday</button>
+          <button id="presetToday" class="preset-btn" onclick="setDatePreset('today')">Today</button>
+          <button id="presetTomorrow" class="preset-btn" onclick="setDatePreset('tomorrow')">Tomorrow</button>
         </div>
       </div>
 
@@ -596,29 +666,29 @@
                   <td>Hybrid Ensemble</td>
                   <td>110.2 MW</td>
                   <td>142.1 MW</td>
-                  <td><td><span class="badge best">Best Choice</span></td>
+                  <td><span class="badge best">Best Choice</span></td>
                 </tr>
                 <tr>
                   <td>XGBoost Regressor</td>
                   <td>128.5 MW</td>
                   <td>168.0 MW</td>
-                  <td><td><span class="badge">Stable</span></td>
+                  <td><span class="badge">Stable</span></td>
                 </tr>
                 <tr>
                   <td>Random Forest</td>
                   <td>134.1 MW</td>
                   <td>175.4 MW</td>
-                  <td><td><span class="badge">Robust</span></td>
+                  <td><span class="badge">Robust</span></td>
                 </tr>
                 <tr>
                   <td>Baseline Persistence</td>
                   <td>285.9 MW</td>
                   <td>362.5 MW</td>
-                  <td><td><span class="badge">Historical</span></td>
+                  <td><span class="badge">Historical</span></td>
                 </tr>
               </tbody>
             </table>
-            <div style="margin-top:14px; background:rgba(59,130,246,0.05); padding:12px; border-radius:10px; border:1px solid rgba(59,130,246,0.15); font-size:11px; line-height:1.5; color:#93c5fd;">
+            <div style="margin-top:14px; background:rgba(59,130,246,0.05); padding:12px; border-radius:10px; border:1px solid rgba(59,130,246,0.15); font-size:11px; line-height:1.5; color:#1e3a8a;">
               💡 <strong>Bangladesh Dispatch Advisory</strong>: The Bangladesh National Grid experiences a very steep power demand ascent during the evening peak load window (সন্ধ্যা পিক), caused by residential lighting and cooling spikes. While **XGBoost** captures this fast-ramping behavior accurately, **Random Forest** excels at modeling stable daytime baseline loads (ডে পিক). The **Hybrid Ensemble** merges their outputs to provide the NLDC (National Load Dispatch Centre) with the most stable, low-variance load forecasts, shielding predictions from volatile fuel supply anomalies.
             </div>
           </div>
@@ -657,6 +727,42 @@
       return key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ').replace('Hvdc', 'HVDC');
     }
 
+    function getLocalDateString(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function updateFriendlyDateDisplay(dateStr) {
+      if (!dateStr) return;
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return;
+      const date = new Date(parts[0], parts[1] - 1, parts[2]);
+      const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+      const friendly = date.toLocaleDateString('en-US', options);
+      document.getElementById('formattedDateDisplay').textContent = friendly;
+    }
+
+    function updateDatePickerUI(dateStr) {
+      updateFriendlyDateDisplay(dateStr);
+
+      const today = new Date();
+      const todayStr = getLocalDateString(today);
+      
+      const yesterday = new Date();
+      yesterday.setDate(today.getDate() - 1);
+      const yesterdayStr = getLocalDateString(yesterday);
+      
+      const tomorrow = new Date();
+      tomorrow.setDate(today.getDate() + 1);
+      const tomorrowStr = getLocalDateString(tomorrow);
+
+      document.getElementById('presetYesterday').classList.toggle('active', dateStr === yesterdayStr);
+      document.getElementById('presetToday').classList.toggle('active', dateStr === todayStr);
+      document.getElementById('presetTomorrow').classList.toggle('active', dateStr === tomorrowStr);
+    }
+
     function setDatePreset(preset) {
       const today = new Date();
       let target = new Date();
@@ -665,7 +771,8 @@
       } else if (preset === 'tomorrow') {
         target.setDate(today.getDate() + 1);
       }
-      document.getElementById('datePicker').value = target.toISOString().split('T')[0];
+      const dateStr = getLocalDateString(target);
+      document.getElementById('datePicker').value = dateStr;
       handleDateChange();
     }
 
@@ -673,13 +780,17 @@
       const currentVal = document.getElementById('datePicker').value;
       const d = currentVal ? new Date(currentVal) : new Date();
       d.setDate(d.getDate() + days);
-      document.getElementById('datePicker').value = d.toISOString().split('T')[0];
+      const dateStr = getLocalDateString(d);
+      document.getElementById('datePicker').value = dateStr;
       handleDateChange();
     }
 
     function handleDateChange() {
       const val = document.getElementById('datePicker').value;
-      if (val) loadForecastData(val);
+      if (val) {
+        updateDatePickerUI(val);
+        loadForecastData(val);
+      }
     }
 
     async function loadForecastData(dateStr) {
@@ -691,7 +802,7 @@
       
       // Let user know about cold starts
       const loadMsg = document.getElementById('demandLoadingMsg');
-      loadMsg.innerHTML = `Initializing NLDC Dispatch Predictor Engine...<br><span style="font-size:11px; opacity:0.75; display:inline-block; margin-top:6px; line-height:1.4;">Connecting to Render-hosted FastAPI inference workers.<br>Note: Free containers may take up to 45 seconds to wake up on a cold start.</span>`;
+      loadMsg.innerHTML = `Initializing NLDC Dispatch Predictor Engine...<br><span style="font-size:11px; color:#475569; opacity:0.85; display:inline-block; margin-top:6px; line-height:1.4;">Connecting to Render-hosted FastAPI inference workers.<br>Note: Free containers may take up to 45 seconds to wake up on a cold start.</span>`;
 
       try {
         const response = await fetch(`${API_BASE_URL}/predict?date=${dateStr}`, { cache: 'no-store' });
@@ -712,8 +823,8 @@
         console.error('Forecast fetch failed:', err);
         const errBlock = `
           <span style="font-size:36px;">⚠️</span>
-          <p style="color:#f87171; font-weight:600; margin-top:8px; font-size:14px;">National Grid Predictor Engine Unreachable</p>
-          <p style="font-size:11px; max-width:340px; opacity:0.8; margin-top:6px; line-height:1.4;">The machine learning API endpoint is currently asleep or offline. Please allow a few moments for the Render container to complete its boot sequence and try refreshing the date query.</p>
+          <p style="color:#b91c1c; font-weight:600; margin-top:8px; font-size:14px;">National Grid Predictor Engine Unreachable</p>
+          <p style="font-size:11px; max-width:340px; color:#475569; opacity:0.9; margin-top:6px; line-height:1.4;">The machine learning API endpoint is currently asleep or offline. Please allow a few moments for the Render container to complete its boot sequence and try refreshing the date query.</p>
         `;
         document.getElementById('demandEmpty').innerHTML = errBlock;
         document.getElementById('mixEmpty').innerHTML = errBlock;
@@ -851,12 +962,12 @@
           responsive: true, maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { position: 'top', labels: { color: '#94a3b8', font: { family: 'DM Sans', size: 11 } } },
+            legend: { position: 'top', labels: { color: '#475569', font: { family: 'DM Sans', size: 11 } } },
             tooltip: {
-              backgroundColor: '#131a2b',
-              titleColor: '#fff',
-              bodyColor: '#cbd5e1',
-              borderColor: 'rgba(255,255,255,0.1)',
+              backgroundColor: '#ffffff',
+              titleColor: '#0f172a',
+              bodyColor: '#475569',
+              borderColor: '#e2e8f0',
               borderWidth: 1,
               padding: 10,
               callbacks: {
@@ -868,8 +979,8 @@
             x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { display: false } },
             y: {
               ticks: { color: '#64748b', font: { size: 10 } },
-              grid: { color: 'rgba(255,255,255,0.05)' },
-              title: { display: true, text: 'Grid Demand (MW)', color: '#64748b', font: { size: 11 } }
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              title: { display: true, text: 'Grid Demand (MW)', color: '#475569', font: { size: 11 } }
             }
           }
         }
@@ -904,10 +1015,12 @@
           responsive: true, maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 10, font: { size: 10 } } },
+            legend: { position: 'bottom', labels: { color: '#475569', boxWidth: 10, font: { size: 10 } } },
             tooltip: {
-              backgroundColor: '#131a2b',
-              borderColor: 'rgba(255,255,255,0.1)',
+              backgroundColor: '#ffffff',
+              titleColor: '#0f172a',
+              bodyColor: '#475569',
+              borderColor: '#e2e8f0',
               borderWidth: 1,
               callbacks: {
                 label: ctx => `${ctx.dataset.label}: ${Math.round(ctx.parsed.y).toLocaleString()} MW`
@@ -919,8 +1032,8 @@
             y: {
               stacked: true,
               ticks: { color: '#64748b', font: { size: 10 } },
-              grid: { color: 'rgba(255,255,255,0.05)' },
-              title: { display: true, text: 'Generation Fuel mix (MW)', color: '#64748b', font: { size: 11 } }
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              title: { display: true, text: 'Generation Fuel mix (MW)', color: '#475569', font: { size: 11 } }
             }
           }
         }
@@ -928,8 +1041,9 @@
     }
 
     // Auto-init on date preset
-    const dStr = new Date().toISOString().split('T')[0];
+    const dStr = getLocalDateString(new Date());
     document.getElementById('datePicker').value = dStr;
+    updateDatePickerUI(dStr);
     loadForecastData(dStr);
   </script>
 </body>

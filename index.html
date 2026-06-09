@@ -464,10 +464,14 @@
 
     .stat-card {
       border-radius: var(--radius);
-      padding: 10px 14px;
+      padding: 8px 10px;
       border: 1px solid;
       position: relative;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 66px;
     }
 
     .stat-card::before {
@@ -494,10 +498,39 @@
     .stat-card.indigo { background: #eef2ff; border-color: #c7d2fe; }
     .stat-card.indigo::before { background: #4f46e5; }
 
-    .stat-icon { font-size: 16px; margin-bottom: 2px; }
-    .stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); line-height: 1.2; }
-    .stat-value { font-size: 20px; font-weight: 800; letter-spacing: -0.03em; font-family: 'DM Mono', monospace; margin-top: 2px; line-height: 1; }
-    .stat-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .stat-icon {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      font-size: 14px;
+      opacity: 0.45;
+    }
+    .stat-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      line-height: 1.1;
+      padding-right: 16px;
+    }
+    .stat-value {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      font-family: 'DM Mono', monospace;
+      margin-top: 3px;
+      line-height: 1.1;
+    }
+    .stat-sub {
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 1px;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
     .stat-card.blue .stat-value { color: #1d4ed8; }
     .stat-card.orange .stat-value { color: var(--warn); }
@@ -513,15 +546,15 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 14px;
+      padding: 6px 12px;
       background: #f8fafc;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
-      margin-top: 14px;
+      margin-top: 10px;
     }
 
-    .insight-bar .icon { font-size: 16px; flex-shrink: 0; }
-    .insight-bar p { font-size: 13px; color: var(--text); line-height: 1.5; }
+    .insight-bar .icon { font-size: 14px; flex-shrink: 0; }
+    .insight-bar p { font-size: 12px; color: var(--text); line-height: 1.4; }
 
     /* ── CHARTS ── */
     .chart-section {
@@ -1232,9 +1265,9 @@
     <main>
 
       <!-- SUMMARY STATS -->
-      <section class="card" style="padding: 18px;">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
-          <h2 style="font-size:16px; font-weight:800; flex:1;">Summary</h2>
+      <section class="card" style="padding: 12px 16px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+          <h2 style="font-size:15px; font-weight:800; flex:1;">Summary</h2>
           <span id="filterPill" class="pill" style="display:none;">Filtered view</span>
         </div>
         <div id="summaryStats" class="stats-grid">
@@ -1687,9 +1720,49 @@
         })
         .catch(err => {
           $('loadBarWrap').classList.remove('visible');
-          $('loadStatus').innerHTML = `<span class="error">Failed to load: ${err.message}</span>`;
+          let errMsg = `Failed to load: ${err.message}`;
+          if (window.location.protocol === 'file:') {
+            errMsg += `<br><span style="font-size:11px; color:var(--muted); display:inline-block; margin-top:6px; line-height:1.4;">Browsers block local file access via file:// due to CORS security. Run a local server (e.g., <code>npx serve</code>) or select/drag <strong>pgcb_data.csv</strong> manually:</span>
+            <div style="margin-top:8px;">
+              <input type="file" id="manualFileSelect" accept=".csv" style="display:none;" onchange="handleManualFile(this.files[0])">
+              <button class="btn-primary btn-full" style="font-size:11px; padding:6px 12px; cursor:pointer;" onclick="document.getElementById('manualFileSelect').click()">📁 Select pgcb_data.csv</button>
+            </div>`;
+          }
+          $('loadStatus').innerHTML = `<span class="error">${errMsg}</span>`;
           showToast('Could not load pgcb_data.csv — ' + err.message, 'error');
         });
+    }
+
+    function handleManualFile(file) {
+      if (!file) return;
+      $('loadStatus').innerHTML = `<span>Parsing <strong>${file.name}</strong>…</span>`;
+      $('loadBarWrap').classList.add('visible');
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: false,
+        fastMode: true,
+        complete: function(results) {
+          $('loadBarWrap').classList.remove('visible');
+          allRows = results.data.map(normalizeRow).filter(r => r._date !== null);
+          if (!allRows.length) {
+            $('loadStatus').innerHTML = `<span class="error">No valid datetime rows found.</span>`;
+            showToast('No valid rows found', 'error');
+            return;
+          }
+          allRows.sort((a,b) => a._timestamp - b._timestamp);
+          populateFilters();
+          resetFilters(false);
+          applyFilters();
+          $('loadStatus').innerHTML = `<span class="success">✓ ${allRows.length.toLocaleString()} rows loaded manually</span>`;
+          showToast(`Loaded ${allRows.length.toLocaleString()} rows`, 'success');
+        },
+        error: function(error) {
+          $('loadBarWrap').classList.remove('visible');
+          $('loadStatus').innerHTML = `<span class="error">Parse error: ${error.message}</span>`;
+          showToast('Failed to parse CSV: ' + error.message, 'error');
+        }
+      });
     }
 
     /* ── Filters ── */

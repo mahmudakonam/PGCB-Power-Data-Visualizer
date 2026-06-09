@@ -201,27 +201,92 @@
 
     /* ── Load data (always use CSV with cache buster) ── */
     async function loadData(){
-      let rows=[];
+      const badge=document.getElementById('liveBadge');
+      const wrap=document.getElementById('tableWrap');
+      if (wrap) wrap.innerHTML = `<div class="status-msg"><div class="icon">📡</div><p>Fetching live grid data…</p></div>`;
+
       try{
         // Add timestamp parameter to prevent browser and CDN caching
         const r=await fetch('pgcb_live_data.csv?t=' + Date.now());
-        if(r.ok){
-          const csv=await r.text();
-          Papa.parse(csv,{header:true,skipEmptyLines:true,complete:res=>{
-            rows=res.data.map(row=>{
-              const dt=parseCSVDate(row.datetime);if(!dt)return null;
-              const o={_date:dt,_ts:dt.getTime(),generation_mw:toNum(row.generation_mw),remarks:row.remarks||''};
-              srcCols.forEach(c=>o[c]=toNum(row[c]));return o;
-            }).filter(Boolean);
-          }});
-        }
-      }catch(e){console.error("Fetch error:", e)}
-      // Update badge
-      const badge=document.getElementById('liveBadge');
-      if(rows.length>0){badge.classList.remove('offline');badge.innerHTML='<span class="live-dot"></span>LIVE'}
-      else{badge.classList.add('offline');badge.innerHTML='<span class="live-dot"></span>ERROR'}
+        if(!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+        const csv=await r.text();
+        
+        Papa.parse(csv,{header:true,skipEmptyLines:true,complete:res=>{
+          const rows=res.data.map(row=>{
+            const dt=parseCSVDate(row.datetime);if(!dt)return null;
+            const o={_date:dt,_ts:dt.getTime(),generation_mw:toNum(row.generation_mw),remarks:row.remarks||''};
+            srcCols.forEach(c=>o[c]=toNum(row[c]));return o;
+          }).filter(Boolean);
 
-      if(!rows.length){document.getElementById('heroValue').textContent='N/A';return}
+          if(rows.length>0){badge.classList.remove('offline');badge.innerHTML='<span class="live-dot"></span>LIVE'}
+          else{badge.classList.add('offline');badge.innerHTML='<span class="live-dot"></span>ERROR'}
+
+          if(!rows.length){
+            document.getElementById('heroValue').textContent='N/A';
+            if (wrap) wrap.innerHTML = `<div class="status-msg"><div class="icon">⚠️</div><p>No valid rows found in CSV.</p></div>`;
+            return;
+          }
+          rows.sort((a,b)=>a._ts-b._ts);
+          liveRows=rows;
+          updateUI();
+          resetCountdown();
+        },error:err=>{
+          badge.classList.add('offline');
+          badge.innerHTML='<span class="live-dot"></span>ERROR';
+          document.getElementById('heroValue').textContent='N/A';
+          if (wrap) wrap.innerHTML = `<div class="status-msg"><div class="icon">⚠️</div><p>Failed to parse CSV: ${err.message}</p></div>`;
+        }});
+      }catch(e){
+        console.error("Fetch error:", e);
+        badge.classList.add('offline');
+        badge.innerHTML='<span class="live-dot"></span>ERROR';
+        document.getElementById('heroValue').textContent='N/A';
+        
+        let errMsg = `Failed to fetch live data.`;
+        if (window.location.protocol === 'file:') {
+          errMsg += `<br><span style="font-size:12px; color:var(--muted); display:inline-block; margin-top:8px; line-height:1.5;">Browser CORS security blocks file:// access. Please run a local server or select <strong>pgcb_live_data.csv</strong> manually:</span>
+          <div style="margin-top:12px;">
+            <input type="file" id="manualLiveSelect" accept=".csv" style="display:none;" onchange="handleManualLiveFile(this.files[0])">
+            <button onclick="document.getElementById('manualLiveSelect').click()" style="background:var(--primary); color:white; font-size:12px; padding:8px 16px; border-radius:6px; border:none; cursor:pointer;">📁 Select pgcb_live_data.csv</button>
+          </div>`;
+        }
+        if (wrap) wrap.innerHTML = `<div class="status-msg"><div class="icon">⚠️</div><p>${errMsg}</p></div>`;
+      }
+    }
+
+    function handleManualLiveFile(file) {
+      if (!file) return;
+      const wrap = document.getElementById('tableWrap');
+      if (wrap) wrap.innerHTML = `<div class="status-msg"><div class="icon">📡</div><p>Parsing ${file.name}…</p></div>`;
+      
+      Papa.parse(file,{header:true,skipEmptyLines:true,complete:res=>{
+        const rows=res.data.map(row=>{
+          const dt=parseCSVDate(row.datetime);if(!dt)return null;
+          const o={_date:dt,_ts:dt.getTime(),generation_mw:toNum(row.generation_mw),remarks:row.remarks||''};
+          srcCols.forEach(c=>o[c]=toNum(row[c]));return o;
+        }).filter(Boolean);
+
+        const badge=document.getElementById('liveBadge');
+        if(rows.length>0){badge.classList.remove('offline');badge.innerHTML='<span class="live-dot"></span>LIVE'}
+        else{badge.classList.add('offline');badge.innerHTML='<span class="live-dot"></span>ERROR'}
+
+        if(!rows.length){
+          document.getElementById('heroValue').textContent='N/A';
+          if (wrap) wrap.innerHTML = `<div class="status-msg"><div class="icon">⚠️</div><p>No valid rows found in CSV.</p></div>`;
+          return;
+        }
+        rows.sort((a,b)=>a._ts-b._ts);
+        liveRows=rows;
+        updateUI();
+        resetCountdown();
+      },error:err=>{
+        const badge=document.getElementById('liveBadge');
+        badge.classList.add('offline');
+        badge.innerHTML='<span class="live-dot"></span>ERROR';
+        document.getElementById('heroValue').textContent='N/A';
+        if (wrap) wrap.innerHTML = `<div class="status-msg"><div class="icon">⚠️</div><p>Failed to parse CSV: ${err.message}</p></div>`;
+      }});
+    }document.getElementById('heroValue').textContent='N/A';return}
       rows.sort((a,b)=>a._ts-b._ts);
       liveRows=rows;
       updateUI();
