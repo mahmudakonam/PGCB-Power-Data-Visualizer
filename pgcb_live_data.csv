@@ -1,4 +1,5 @@
 datetime,generation_mw,demand_mw,load_shedding,gas,liquid_fuel,coal,hydro,solar,wind,india_bheramara_hvdc,india_tripura,india_adani,nepal,remarks
+7/8/26 23:00,14773,,,4656,2428,4946,142,0,46,859,164,1494,38,
 7/8/26 22:00,15029,,,4684,2684,4949,155,0,32,859,156,1472,38,
 7/8/26 21:00,15376,,,4698,2999,4943,155,0,57,859,160,1467,38,Evening_Peak
 7/8/26 20:00,15049,,,4574,2843,4878,155,0,64,859,164,1474,38,
