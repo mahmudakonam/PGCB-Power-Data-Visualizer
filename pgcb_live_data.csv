@@ -1,4 +1,5 @@
 datetime,generation_mw,demand_mw,load_shedding,gas,liquid_fuel,coal,hydro,solar,wind,india_bheramara_hvdc,india_tripura,india_adani,nepal,remarks
+8/25/26 12:00,15314,,,5095,2152,5325,219,594,6,906,156,823,38,
 8/25/26 11:00,15138,,,5145,2003,5369,222,488,7,906,132,828,38,
 8/25/26 10:00,15085,,,5185,1806,5369,222,592,8,907,132,826,38,
 8/25/26 9:00,14642,,,5096,1687,5374,222,356,8,906,124,831,38,
