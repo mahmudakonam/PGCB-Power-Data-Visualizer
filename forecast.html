@@ -431,6 +431,7 @@
     .chart-empty p { font-size: 13px; max-width: 280px; }
 
     canvas { width: 100% !important; height: 340px !important; }
+    #mixChart { height: 400px !important; }
 
     /* ── ACCURACY COMPARATOR TABLE ── */
     table {
@@ -624,26 +625,22 @@
         </div>
       </section>
 
-      <!-- 3. FUEL MIX FORECAST & ACCURACY LEADERBOARD (side by side) -->
-      <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:16px;">
-        
-        <section class="chart-section" style="border-color: rgba(168, 85, 247, 0.2);">
-          <div class="chart-header">
-            <div class="chart-title">
-              <h3>🏭 Multi-Output Fuel Generation Distribution Forecast</h3>
-              <p>Diurnal stacked power contribution across Gas, Coal, Imports (HVDC, Tripura, Adani), Solar, and Hydro.</p>
-            </div>
+      <!-- 3. FUEL MIX FORECAST -->
+      <section class="chart-section" style="border-color: rgba(168, 85, 247, 0.2);">
+        <div class="chart-header">
+          <div class="chart-title">
+            <h3>🏭 Multi-Output Fuel Generation Distribution Forecast</h3>
+            <p>Diurnal stacked power contribution across Gas, Coal, Imports (HVDC, Tripura, Adani), Solar, and Hydro.</p>
           </div>
-          <div class="chart-body">
-            <div id="mixEmpty" class="chart-empty">
-              <div class="spinner"></div>
-              <p>Waiting for model output...</p>
-            </div>
-            <canvas id="mixChart" style="display:none;"></canvas>
+        </div>
+        <div class="chart-body">
+          <div id="mixEmpty" class="chart-empty">
+            <div class="spinner"></div>
+            <p>Waiting for model output...</p>
           </div>
-        </section>
-
-      </div>
+          <canvas id="mixChart" style="display:none;"></canvas>
+        </div>
+      </section>
 
     </main>
 

@@ -197,6 +197,7 @@
 
     function fmtDT(d){if(!d)return'';const y=d.getFullYear(),mo=String(d.getMonth()+1).padStart(2,'0'),da=String(d.getDate()).padStart(2,'0'),h=String(d.getHours()).padStart(2,'0'),mi=String(d.getMinutes()).padStart(2,'0');return`${y}-${mo}-${da} ${h}:${mi}`}
     function prettyName(c){return c.replace(/_/g,' ').replace(/\b\w/g,x=>x.toUpperCase()).replace('Mw','MW').replace('Hvdc','HVDC')}
+    function escapeHtml(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
 
 
     /* ── Load data (always use CSV with cache buster) ── */
@@ -286,11 +287,6 @@
         document.getElementById('heroValue').textContent='N/A';
         if (wrap) wrap.innerHTML = `<div class="status-msg"><div class="icon">⚠️</div><p>Failed to parse CSV: ${err.message}</p></div>`;
       }});
-    }document.getElementById('heroValue').textContent='N/A';return}
-      rows.sort((a,b)=>a._ts-b._ts);
-      liveRows=rows;
-      updateUI();
-      resetCountdown();
     }
 
     /* ── Update UI ── */
@@ -344,7 +340,7 @@
       const hdr=cols.map(c=>`<th>${prettyName(c)}</th>`).join('');
       const body=rows.map(r=>'<tr>'+cols.map(c=>{
         const v=c==='datetime'?fmtDT(r._date):(r[c]??'');
-        return`<td>${String(v)}</td>`}).join('')+'</tr>').join('');
+        return`<td>${escapeHtml(v)}</td>`}).join('')+'</tr>').join('');
       document.getElementById('tableWrap').innerHTML=`<table><thead><tr>${hdr}</tr></thead><tbody>${body}</tbody></table>`;
     }
 
