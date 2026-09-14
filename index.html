@@ -1298,7 +1298,14 @@
         </div>
       </section>
 
-
+      <!-- ALL-TIME RECORDS (unaffected by filters) -->
+      <section class="card" id="recordsSection" style="padding: 12px 16px; display:none;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+          <h2 style="font-size:15px; font-weight:800; flex:1;">🏆 All-Time Grid Records</h2>
+          <span class="pill" style="background:#fffbeb; color:#92400e;">Full dataset, ignores filters</span>
+        </div>
+        <div id="recordsGrid" class="stats-grid"></div>
+      </section>
 
       <!-- MAIN CHART -->
       <section class="chart-section">
@@ -1704,6 +1711,7 @@
 
               allRows.sort((a,b) => a._timestamp - b._timestamp);
               populateFilters();
+              renderRecords(allRows);
               resetFilters(false);
               applyFilters();
 
@@ -1752,6 +1760,7 @@
           }
           allRows.sort((a,b) => a._timestamp - b._timestamp);
           populateFilters();
+          renderRecords(allRows);
           resetFilters(false);
           applyFilters();
           $('loadStatus').innerHTML = `<span class="success">✓ ${allRows.length.toLocaleString()} rows loaded manually</span>`;
@@ -1893,15 +1902,96 @@
       return best;
     }
 
+    /* Share of generation_mw made up by the given columns, weighted by generation (sum/sum, not avg-of-ratios).
+       A source component can never legitimately exceed the row's own generation_mw — the historical CSV has
+       occasional digit-entry corruption (e.g. an import column reading 76292 MW against 6923 MW generation),
+       so values that violate that constraint are treated as bad data and dropped from the sum. */
+    function shareOf(rows, cols) {
+      let num = 0, den = 0;
+      rows.forEach(r => {
+        const g = r.generation_mw;
+        if (g === null || !Number.isFinite(g) || g <= 0) return;
+        let s = 0, any = false;
+        cols.forEach(c => { const v = r[c]; if (v !== null && Number.isFinite(v) && v <= g * 1.1) { s += v; any = true; } });
+        if (any) { num += s; den += g; }
+      });
+      return den > 0 ? (num / den * 100) : null;
+    }
+
+    /* Average of a column, discarding rows where the value is an implausible multiple of generation_mw
+       (guards demand_mw / load_shedding against the same kind of digit-corruption noted above). */
+    function avgSane(rows, col, maxRatio) {
+      let sum = 0, count = 0;
+      rows.forEach(r => {
+        const v = r[col], g = r.generation_mw;
+        if (v === null || !Number.isFinite(v)) return;
+        if (maxRatio && g !== null && Number.isFinite(g) && g > 0 && v > g * maxRatio) return;
+        sum += v; count++;
+      });
+      return count ? sum / count : null;
+    }
+
+    /* ── All-time records (computed once from the full unfiltered dataset) ── */
+    function renderRecords(rows) {
+      const section = $('recordsSection');
+      if (!rows.length) { section.style.display = 'none'; return; }
+
+      const peak = maxRow(rows, 'generation_mw');
+
+      // Solar+wind can't legitimately exceed that row's own generation_mw — same corruption guard as shareOf().
+      let bestRenewRow = null, bestRenewVal = -Infinity;
+      rows.forEach(r => {
+        const g = r.generation_mw;
+        const solar = (r.solar !== null && Number.isFinite(r.solar) && (g === null || r.solar <= g * 1.1)) ? r.solar : 0;
+        const wind = (r.wind !== null && Number.isFinite(r.wind) && (g === null || r.wind <= g * 1.1)) ? r.wind : 0;
+        const s = solar + wind;
+        if (s > bestRenewVal) { bestRenewVal = s; bestRenewRow = r; }
+      });
+
+      const minDate = rows[0]._date, maxDate = rows[rows.length - 1]._date;
+      const spanYears = (minDate && maxDate) ? (maxDate - minDate) / (1000 * 60 * 60 * 24 * 365.25) : 0;
+      const renewableShare = shareOf(rows, ['solar', 'wind']);
+
+      $('recordsGrid').innerHTML = `
+        <div class="stat-card teal">
+          <div class="stat-icon">🏆</div>
+          <div class="stat-label">All-time peak generation</div>
+          <div class="stat-value">${peak ? Number(peak.generation_mw).toLocaleString() : '—'}</div>
+          <div class="stat-sub">${peak ? 'MW · ' + formatDateTime(peak._date) : 'MW'}</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon">🌱</div>
+          <div class="stat-label">Best renewable output</div>
+          <div class="stat-value">${bestRenewRow ? Number(bestRenewVal).toLocaleString() : '—'}</div>
+          <div class="stat-sub">${bestRenewRow ? 'MW solar+wind · ' + formatDateTime(bestRenewRow._date) : ''}</div>
+        </div>
+        <div class="stat-card indigo">
+          <div class="stat-icon">🗓️</div>
+          <div class="stat-label">Data coverage</div>
+          <div class="stat-value" style="font-size:18px;">${spanYears.toFixed(1)} yrs</div>
+          <div class="stat-sub">${minDate ? minDate.getFullYear() : ''}–${maxDate ? maxDate.getFullYear() : ''} · ${rows.length.toLocaleString()} records</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-icon">🌍</div>
+          <div class="stat-label">Lifetime renewable share</div>
+          <div class="stat-value">${renewableShare === null ? '—' : renewableShare.toFixed(2) + '%'}</div>
+          <div class="stat-sub">Solar + wind, full history</div>
+        </div>
+      `;
+      section.style.display = '';
+    }
+
     function updateStats() {
       const loaded = allRows.length;
       const filtered = filteredRows.length;
       const minDate = filteredRows.length ? filteredRows[0]._date : null;
       const maxDate = filteredRows.length ? filteredRows[filteredRows.length-1]._date : null;
       const avgGeneration = avg(filteredRows, 'generation_mw');
-      const avgDemand = avg(filteredRows, 'demand_mw');
-      const avgLoadShedding = avg(filteredRows, 'load_shedding');
+      const avgDemand = avgSane(filteredRows, 'demand_mw', 3);
+      const avgLoadShedding = avgSane(filteredRows, 'load_shedding', 3);
       const peak = maxRow(filteredRows, 'generation_mw');
+      const renewableShare = shareOf(filteredRows, ['solar', 'wind']);
+      const importShare = shareOf(filteredRows, ['india_bheramara_hvdc', 'india_tripura', 'india_adani', 'nepal']);
 
       $('summaryStats').innerHTML = `
         <div class="stat-card blue">
@@ -1952,6 +2042,18 @@
           <div class="stat-value" style="font-size:14px; line-height:1.3;">${maxDate ? formatDateTime(maxDate) : '—'}</div>
           <div class="stat-sub"> </div>
         </div>
+        <div class="stat-card green">
+          <div class="stat-icon">🌱</div>
+          <div class="stat-label">Renewable share</div>
+          <div class="stat-value">${renewableShare===null ? '—' : renewableShare.toFixed(1)+'%'}</div>
+          <div class="stat-sub">Solar + wind of generation</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-icon">🔌</div>
+          <div class="stat-label">Import dependency</div>
+          <div class="stat-value">${importShare===null ? '—' : importShare.toFixed(1)+'%'}</div>
+          <div class="stat-sub">Cross-border of generation</div>
+        </div>
       `;
 
       const insight = $('quickInsight');
@@ -1965,6 +2067,7 @@
           parts.push(`✓ No average load shedding in this period.`);
         }
         if (peak) parts.push(`Peak generation of <strong>${Number(peak.generation_mw).toFixed(0)} MW</strong> at ${formatDateTime(peak._date)}.`);
+        if (renewableShare!==null) parts.push(`Renewables supplied <strong>${renewableShare.toFixed(1)}%</strong> of generation.`);
         insight.style.display = 'flex';
         insight.querySelector('p').innerHTML = parts.join(' ');
       } else {
