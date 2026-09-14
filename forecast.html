@@ -643,57 +643,6 @@
           </div>
         </section>
 
-        <section class="card" style="display:flex; flex-direction:column;">
-          <div class="card-header">
-            <span>🏆</span>
-            <h2>NLDC Forecasting Benchmarks</h2>
-          </div>
-          <div style="flex: 1; overflow-y: auto;">
-            <p style="font-size:11px; color:var(--muted); margin-bottom:12px; line-height:1.5;">
-              These operational benchmarks are evaluated against historical hourly grid records compiled by PGCB. Lower Mean Absolute Error (MAE) and Root Mean Squared Error (RMSE) indicate superior generalizability across sudden seasonal and weather-driven demand swings.
-            </p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Model Architecture</th>
-                  <th>MAE</th>
-                  <th>RMSE</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Hybrid Ensemble</td>
-                  <td>110.2 MW</td>
-                  <td>142.1 MW</td>
-                  <td><span class="badge best">Best Choice</span></td>
-                </tr>
-                <tr>
-                  <td>XGBoost Regressor</td>
-                  <td>128.5 MW</td>
-                  <td>168.0 MW</td>
-                  <td><span class="badge">Stable</span></td>
-                </tr>
-                <tr>
-                  <td>Random Forest</td>
-                  <td>134.1 MW</td>
-                  <td>175.4 MW</td>
-                  <td><span class="badge">Robust</span></td>
-                </tr>
-                <tr>
-                  <td>Baseline Persistence</td>
-                  <td>285.9 MW</td>
-                  <td>362.5 MW</td>
-                  <td><span class="badge">Historical</span></td>
-                </tr>
-              </tbody>
-            </table>
-            <div style="margin-top:14px; background:rgba(59,130,246,0.05); padding:12px; border-radius:10px; border:1px solid rgba(59,130,246,0.15); font-size:11px; line-height:1.5; color:#1e3a8a;">
-              💡 <strong>Bangladesh Dispatch Advisory</strong>: The Bangladesh National Grid experiences a very steep power demand ascent during the evening peak load window (সন্ধ্যা পিক), caused by residential lighting and cooling spikes. While **XGBoost** captures this fast-ramping behavior accurately, **Random Forest** excels at modeling stable daytime baseline loads (ডে পিক). The **Hybrid Ensemble** merges their outputs to provide the NLDC (National Load Dispatch Centre) with the most stable, low-variance load forecasts, shielding predictions from volatile fuel supply anomalies.
-            </div>
-          </div>
-        </section>
-
       </div>
 
     </main>
